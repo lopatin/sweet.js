@@ -1,4 +1,5 @@
-import Term, { isIdentifierExpression, isStaticMemberExpression, isComputedMemberExpression } from "./terms";
+import { isIdentifierExpression, isStaticMemberExpression, isComputedMemberExpression } from "./terms";
+import Term, * as T from 'sweet-spec';
 import { Maybe } from "ramda-fantasy";
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
@@ -87,7 +88,7 @@ export class Enforester {
     }
 
     if (this.isEOF(this.peek())) {
-      this.term = new Term("EOF", {});
+      this.term = new T.EOF({});
       this.advance();
       return this.term;
     }
@@ -132,7 +133,7 @@ export class Enforester {
     this.matchIdentifier('lang');
     let path = this.matchStringLiteral();
     this.consumeSemicolon();
-    return new Term('Pragma', {
+    return new T.Pragma({
       kind: 'lang',
       items: List.of(path)
     });
@@ -143,43 +144,43 @@ export class Enforester {
     if (this.isPunctuator(lookahead, '*')) {
       this.advance();
       let moduleSpecifier = this.enforestFromClause();
-      return new Term('ExportAllFrom', { moduleSpecifier });
+      return new T.ExportAllFrom({ moduleSpecifier });
     } else if (this.isBraces(lookahead)) {
       let namedExports = this.enforestExportClause();
       let moduleSpecifier = null;
       if (this.isIdentifier(this.peek(), 'from')) {
         moduleSpecifier = this.enforestFromClause();
       }
-      return new Term('ExportFrom', { namedExports, moduleSpecifier });
+      return new T.ExportFrom({ namedExports, moduleSpecifier });
     } else if (this.isKeyword(lookahead, 'class')) {
-      return new Term('Export', {
+      return new T.Export({
         declaration: this.enforestClass({ isExpr: false })
       });
     } else if (this.isFnDeclTransform(lookahead)) {
-      return new Term('Export', {
+      return new T.Export({
         declaration: this.enforestFunction({isExpr: false, inDefault: false})
       });
     } else if (this.isKeyword(lookahead, 'default')) {
       this.advance();
       if (this.isFnDeclTransform(this.peek())) {
-        return new Term('ExportDefault', {
+        return new T.ExportDefault({
           body: this.enforestFunction({isExpr: false, inDefault: true})
         });
       } else if (this.isKeyword(this.peek(), 'class')) {
-        return new Term('ExportDefault', {
+        return new T.ExportDefault({
           body: this.enforestClass({isExpr: false, inDefault: true})
         });
       } else {
         let body = this.enforestExpressionLoop();
         this.consumeSemicolon();
-        return new Term('ExportDefault', { body });
+        return new T.ExportDefault({ body });
       }
     } else if (this.isVarDeclTransform(lookahead) ||
         this.isLetDeclTransform(lookahead) ||
         this.isConstDeclTransform(lookahead) ||
         this.isSyntaxrecDeclTransform(lookahead) ||
         this.isSyntaxDeclTransform(lookahead)) {
-      return new Term('Export', {
+      return new T.Export({
         declaration: this.enforestVariableDeclaration()
       });
     }
@@ -201,9 +202,9 @@ export class Enforester {
     if (this.isIdentifier(this.peek(), 'as')) {
       this.advance();
       let exportedName = this.enforestIdentifier();
-      return new Term('ExportSpecifier', { name, exportedName });
+      return new T.ExportSpecifier({ name, exportedName });
     }
-    return new Term('ExportSpecifier', {
+    return new T.ExportSpecifier({
       name: null,
       exportedName: name
     });
@@ -218,7 +219,7 @@ export class Enforester {
     if (this.isStringLiteral(lookahead)) {
       let moduleSpecifier = this.advance();
       this.consumeSemicolon();
-      return new Term('Import', {
+      return new T.Import({
         defaultBinding,
         namedImports,
         moduleSpecifier,
@@ -236,7 +237,7 @@ export class Enforester {
           forSyntax = true;
         }
 
-        return new Term('Import', {
+        return new T.Import({
           defaultBinding, moduleSpecifier,
           namedImports: List(),
           forSyntax
@@ -254,7 +255,7 @@ export class Enforester {
         forSyntax = true;
       }
 
-      return new Term("Import", {
+      return new T.Import({
         defaultBinding,
         forSyntax,
         namedImports: imports,
@@ -269,7 +270,7 @@ export class Enforester {
         this.advance();
         forSyntax = true;
       }
-      return new Term('ImportNamespace', {
+      return new T.ImportNamespace({
         defaultBinding, forSyntax, namespaceBinding, moduleSpecifier
       });
     }
@@ -298,9 +299,9 @@ export class Enforester {
     if (this.isIdentifier(lookahead) || this.isKeyword(lookahead)) {
       name = this.advance();
       if (!this.isIdentifier(this.peek(), 'as')) {
-        return new Term('ImportSpecifier', {
+        return new T.ImportSpecifier({
           name: null,
-          binding: new Term('BindingIdentifier', {
+          binding: new T.BindingIdentifier({
             name: name
           })
         });
@@ -310,7 +311,7 @@ export class Enforester {
     } else {
       throw this.createError(lookahead, 'unexpected token in import specifier');
     }
-    return new Term('ImportSpecifier', {
+    return new T.ImportSpecifier({
       name, binding: this.enforestBindingIdentifier()
     });
   }
@@ -406,7 +407,7 @@ export class Enforester {
          this.isConstDeclTransform(lookahead) ||
          this.isSyntaxrecDeclTransform(lookahead) ||
          this.isSyntaxDeclTransform(lookahead))) {
-      let stmt = new Term('VariableDeclarationStatement', {
+      let stmt = new T.VariableDeclarationStatement({
         declaration: this.enforestVariableDeclaration()
       });
       this.consumeSemicolon();
@@ -419,7 +420,7 @@ export class Enforester {
 
     if (this.term === null && this.isPunctuator(lookahead, ";")) {
       this.advance();
-      return new Term("EmptyStatement", {});
+      return new T.EmptyStatement({});
     }
 
 
@@ -431,7 +432,7 @@ export class Enforester {
     this.matchPunctuator(':');
     let stmt = this.enforestStatement();
 
-    return new Term('LabeledStatement', {
+    return new T.LabeledStatement({
       label: label,
       body: stmt
     });
@@ -443,14 +444,14 @@ export class Enforester {
     let label = null;
     if (this.rest.size === 0 || this.isPunctuator(lookahead, ';')) {
       this.consumeSemicolon();
-      return new Term('BreakStatement', { label });
+      return new T.BreakStatement({ label });
     }
     if (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'yield') || this.isKeyword(lookahead, 'let')) {
       label = this.enforestIdentifier();
     }
     this.consumeSemicolon();
 
-    return new Term('BreakStatement', { label });
+    return new T.BreakStatement({ label });
   }
 
   enforestTryStatement() {
@@ -461,16 +462,16 @@ export class Enforester {
       if (this.isKeyword(this.peek(), 'finally')) {
         this.advance();
         let finalizer = this.enforestBlock();
-        return new Term('TryFinallyStatement', {
+        return new T.TryFinallyStatement({
           body, catchClause, finalizer
         });
       }
-      return new Term('TryCatchStatement', { body, catchClause });
+      return new T.TryCatchStatement({ body, catchClause });
     }
     if (this.isKeyword(this.peek(), 'finally')) {
       this.advance();
       let finalizer = this.enforestBlock();
-      return new Term('TryFinallyStatement', { body, catchClause: null, finalizer });
+      return new T.TryFinallyStatement({ body, catchClause: null, finalizer });
     }
     throw this.createError(this.peek(), 'try with no catch or finally');
   }
@@ -481,14 +482,14 @@ export class Enforester {
     let enf = new Enforester(bindingParens, List(), this.context);
     let binding = enf.enforestBindingTarget();
     let body = this.enforestBlock();
-    return new Term('CatchClause', { binding, body });
+    return new T.CatchClause({ binding, body });
   }
 
   enforestThrowStatement() {
     this.matchKeyword('throw');
     let expression = this.enforestExpression();
     this.consumeSemicolon();
-    return new Term('ThrowStatement', { expression });
+    return new T.ThrowStatement({ expression });
   }
 
   enforestWithStatement() {
@@ -497,13 +498,13 @@ export class Enforester {
     let enf = new Enforester(objParens, List(), this.context);
     let object = enf.enforestExpression();
     let body = this.enforestStatement();
-    return new Term('WithStatement', { object, body });
+    return new T.WithStatement({ object, body });
   }
 
   enforestDebuggerStatement() {
     this.matchKeyword('debugger');
 
-    return new Term('DebuggerStatement', {});
+    return new T.DebuggerStatement({});
   }
 
   enforestDoStatement() {
@@ -514,7 +515,7 @@ export class Enforester {
     let enf = new Enforester(testBody, List(), this.context);
     let test = enf.enforestExpression();
     this.consumeSemicolon();
-    return new Term('DoWhileStatement', { body, test });
+    return new T.DoWhileStatement({ body, test });
   }
 
   enforestContinueStatement() {
@@ -523,7 +524,7 @@ export class Enforester {
     let label = null;
     if (this.rest.size === 0 || this.isPunctuator(lookahead, ';')) {
       this.consumeSemicolon();
-      return new Term('ContinueStatement', { label });
+      return new T.ContinueStatement({ label });
     }
     if (this.lineNumberEq(kwd, lookahead) &&
         (this.isIdentifier(lookahead) ||
@@ -533,7 +534,7 @@ export class Enforester {
     }
     this.consumeSemicolon();
 
-    return new Term('ContinueStatement', { label });
+    return new T.ContinueStatement({ label });
   }
 
   enforestSwitchStatement() {
@@ -544,7 +545,7 @@ export class Enforester {
     let body = this.matchCurlies();
 
     if (body.size === 0) {
-      return new Term('SwitchStatement', {
+      return new T.SwitchStatement({
         discriminant: discriminant,
         cases: List()
       });
@@ -555,14 +556,14 @@ export class Enforester {
     if (enf.isKeyword(lookahead, 'default')) {
       let defaultCase = enf.enforestSwitchDefault();
       let postDefaultCases = enf.enforestSwitchCases();
-      return new Term('SwitchStatementWithDefault', {
+      return new T.SwitchStatementWithDefault({
         discriminant,
         preDefaultCases: cases,
         defaultCase,
         postDefaultCases
       });
     }
-    return new Term('SwitchStatement', {  discriminant, cases });
+    return new T.SwitchStatement({  discriminant, cases });
   }
 
   enforestSwitchCases() {
@@ -575,7 +576,7 @@ export class Enforester {
 
   enforestSwitchCase() {
     this.matchKeyword('case');
-    return new Term('SwitchCase', {
+    return new T.SwitchCase({
       test: this.enforestExpression(),
       consequent: this.enforestSwitchCaseBody()
     });
@@ -596,7 +597,7 @@ export class Enforester {
 
   enforestSwitchDefault() {
     this.matchKeyword('default');
-    return new Term('SwitchDefault', {
+    return new T.SwitchDefault({
       consequent: this.enforestSwitchCaseBody()
     });
   }
@@ -605,7 +606,7 @@ export class Enforester {
     this.matchKeyword('for');
     let cond = this.matchParens();
     let enf = new Enforester(cond, List(), this.context);
-    let lookahead, test, init, right, type, left, update;
+    let lookahead, test, init, right, type, left, update, cnst;
 
     // case where init is null
     if (enf.isPunctuator(enf.peek(), ';')) {
@@ -617,7 +618,7 @@ export class Enforester {
       if (enf.rest.size !== 0) {
         right = enf.enforestExpression();
       }
-      return new Term('ForStatement', {
+      return new T.ForStatement({
         init: null,
         test: test,
         update: right,
@@ -636,13 +637,13 @@ export class Enforester {
           if (this.isKeyword(lookahead, 'in')) {
             enf.advance();
             right = enf.enforestExpression();
-            type = 'ForInStatement';
+            cnst = T.ForInStatement;
           } else if (this.isIdentifier(lookahead, 'of')) {
             enf.advance();
             right = enf.enforestExpression();
-            type = 'ForOfStatement';
+            cnst = T.ForOfStatement;
           }
-          return new Term(type, {
+          return new cnst({
             left: init, right, body: this.enforestStatement()
           });
         }
@@ -660,12 +661,12 @@ export class Enforester {
           left = enf.enforestBindingIdentifier();
           let kind = enf.advance();
           if (this.isKeyword(kind, 'in')) {
-            type = 'ForInStatement';
+            cnst = T.ForInStatement;
           } else {
-            type = 'ForOfStatement';
+            cnst = T.ForOfStatement;
           }
           right = enf.enforestExpression();
-          return new Term(type, {
+          return new cnst({
             left: left, right, body: this.enforestStatement()
           });
         }
@@ -680,7 +681,7 @@ export class Enforester {
         }
         update = enf.enforestExpression();
       }
-      return new Term('ForStatement', { init, test, update, body: this.enforestStatement() });
+      return new T.ForStatement({ init, test, update, body: this.enforestStatement() });
     }
   }
 
@@ -699,7 +700,7 @@ export class Enforester {
       this.advance();
       alternate = this.enforestStatement();
     }
-    return new Term('IfStatement', { test, consequent, alternate });
+    return new T.IfStatement({ test, consequent, alternate });
   }
 
   enforestWhileStatement() {
@@ -713,17 +714,17 @@ export class Enforester {
     }
     let body = this.enforestStatement();
 
-    return new Term('WhileStatement', { test, body });
+    return new T.WhileStatement({ test, body });
   }
 
   enforestBlockStatement() {
-    return new Term('BlockStatement', {
+    return new T.BlockStatement({
       block: this.enforestBlock()
     });
   }
 
   enforestBlock() {
-    return new Term('Block', {
+    return new T.Block({
       statements: this.matchCurlies()
     });
   }
@@ -731,13 +732,12 @@ export class Enforester {
   enforestClass({ isExpr, inDefault }) {
     let kw = this.advance();
     let name = null, supr = null;
-    let type = isExpr ? 'ClassExpression' : 'ClassDeclaration';
 
     if (this.isIdentifier(this.peek())) {
       name = this.enforestBindingIdentifier();
     } else if (!isExpr) {
       if (inDefault) {
-        name = new Term('BindingIdentifier', {
+        name = new T.BindingIdentifier({
           name: Syntax.fromIdentifier('_default', kw)
         });
       } else {
@@ -765,13 +765,12 @@ export class Enforester {
         ({methodOrKey, kind} = enf.enforestMethodDefinition());
       }
       if (kind === 'method') {
-        elements.push(new Term('ClassElement', {isStatic, method: methodOrKey}));
+        elements.push(new T.ClassElement({isStatic, method: methodOrKey}));
       } else {
         throw this.createError(enf.peek(), "Only methods are allowed in classes");
       }
     }
-
-    return new Term(type, {
+    return new (isExpr ? T.ClassExpression : T.ClassDeclaration)({
       name, super: supr,
       elements: List(elements)
     });
@@ -797,7 +796,7 @@ export class Enforester {
       enf.consumeComma();
     }
 
-    return new Term('ObjectBinding', {
+    return new T.ObjectBinding({
       properties: List(properties)
     });
   }
@@ -813,14 +812,14 @@ export class Enforester {
           let expr = this.enforestExpressionLoop();
           defaultValue = expr;
         }
-        return new Term('BindingPropertyIdentifier', {
+        return new T.BindingPropertyIdentifier({
           binding, init: defaultValue
         });
       }
     }
     this.matchPunctuator(':');
     binding = this.enforestBindingElement();
-    return new Term('BindingPropertyProperty', {
+    return new T.BindingPropertyProperty({
       name, binding
     });
   }
@@ -846,7 +845,7 @@ export class Enforester {
       }
       elements.push(el);
     }
-    return new Term('ArrayBinding', {
+    return new T.ArrayBinding({
       elements: List(elements),
       restElement
     });
@@ -858,7 +857,7 @@ export class Enforester {
     if (this.isAssign(this.peek())) {
       this.advance();
       let init = this.enforestExpressionLoop();
-      binding = new Term('BindingWithDefault', { binding, init });
+      binding = new T.BindingWithDefault({ binding, init });
     }
     return binding;
   }
@@ -870,7 +869,7 @@ export class Enforester {
     } else {
       name = this.enforestIdentifier();
     }
-    return new Term("BindingIdentifier", { name });
+    return new T.BindingIdentifier({ name });
   }
 
   enforestPunctuator() {
@@ -897,7 +896,7 @@ export class Enforester {
     // short circuit for the empty expression case
     if (this.rest.size === 0 ||
         (lookahead && !this.lineNumberEq(kw, lookahead))) {
-      return new Term("ReturnStatement", {
+      return new T.ReturnStatement({
         expression: null
       });
     }
@@ -909,7 +908,7 @@ export class Enforester {
     }
 
     this.consumeSemicolon();
-    return new Term("ReturnStatement", {
+    return new T.ReturnStatement({
       expression: term
     });
   }
@@ -951,7 +950,7 @@ export class Enforester {
       }
     }
 
-    return new Term('VariableDeclaration', {
+    return new T.VariableDeclaration({
       kind: kind,
       declarators: decls
     });
@@ -970,7 +969,7 @@ export class Enforester {
     } else {
       init = null;
     }
-    return new Term("VariableDeclarator", {
+    return new T.VariableDeclarator({
       binding: id,
       init: init
     });
@@ -984,7 +983,7 @@ export class Enforester {
     }
     this.consumeSemicolon();
 
-    return new Term("ExpressionStatement", {
+    return new T.ExpressionStatement({
       expression: expr
     });
   }
@@ -999,7 +998,7 @@ export class Enforester {
         }
         let operator = this.advance();
         let right = this.enforestExpressionLoop();
-        left = new Term('BinaryExpression', {left, operator, right});
+        left = new T.BinaryExpression({left, operator: operator.val(), right});
       }
     }
     this.term = null;
@@ -1075,7 +1074,7 @@ export class Enforester {
 
     // ($x:expr)
     if (this.term === null && this.isParens(lookahead)) {
-      return new Term("ParenthesizedExpression", {
+      return new T.ParenthesizedExpression({
         inner: this.advance().inner()
       });
     }
@@ -1152,12 +1151,12 @@ export class Enforester {
       this.rest = enf.rest;
 
       if (op.val() === '=') {
-        return new Term('AssignmentExpression', {
+        return new T.AssignmentExpression({
           binding,
           expression: init
         });
       } else {
-        return new Term('CompoundAssignmentExpression', {
+        return new T.CompoundAssignmentExpression({
           binding,
           operator: op.val(),
           expression: init
@@ -1220,7 +1219,7 @@ export class Enforester {
 
     if (this.isKeyword(lookahead, 'super')) {
       this.advance();
-      this.term = new Term('Super', {});
+      this.term = new T.Super({});
     } else if (this.isNewTransform(lookahead)) {
       this.term = this.enforestNewExpression();
     }
@@ -1250,7 +1249,7 @@ export class Enforester {
       } else if (this.isBraces(lookahead)) {
         this.term = this.enforestPrimaryExpression();
       } else if (this.isIdentifier(lookahead)) {
-        this.term = new Term('IdentifierExpression', { name: this.enforestIdentifier() });
+        this.term = new T.IdentifierExpression({ name: this.enforestIdentifier() });
       } else {
         break;
       }
@@ -1259,36 +1258,36 @@ export class Enforester {
   }
 
   enforestBooleanLiteral() {
-    return new Term("LiteralBooleanExpression", {
-      value: this.advance()
+    return new T.LiteralBooleanExpression({
+      value: this.advance().val() === 'true'
     });
   }
 
   enforestTemplateLiteral() {
-    return new Term('TemplateExpression', {
+    return new T.TemplateExpression({
       tag: this.term,
       elements: this.enforestTemplateElements()
     });
   }
 
   enforestStringLiteral() {
-    return new Term("LiteralStringExpression", {
-      value: this.advance()
+    return new T.LiteralStringExpression({
+      value: this.advance().val()
     });
   }
 
   enforestNumericLiteral() {
     let num = this.advance();
     if (num.val() === 1 / 0) {
-      return new Term('LiteralInfinityExpression', {});
+      return new T.LiteralInfinityExpression({});
     }
-    return new Term("LiteralNumericExpression", {
-      value: num
+    return new T.LiteralNumericExpression({
+      value: num.val()
     });
   }
 
   enforestIdentifierExpression() {
-    return new Term("IdentifierExpression", {
+    return new T.IdentifierExpression({
       name: this.advance()
     });
   }
@@ -1299,18 +1298,18 @@ export class Enforester {
     let lastSlash = reStx.token.value.lastIndexOf("/");
     let pattern = reStx.token.value.slice(1, lastSlash);
     let flags = reStx.token.value.slice(lastSlash + 1);
-    return new Term("LiteralRegExpExpression", {
+    return new T.LiteralRegExpExpression({
       pattern, flags
     });
   }
 
   enforestNullLiteral() {
     this.advance();
-    return new Term("LiteralNullExpression", {});
+    return new T.LiteralNullExpression({});
   }
 
   enforestThisExpression() {
-    return new Term("ThisExpression", {
+    return new T.ThisExpression({
       stx: this.advance()
     });
   }
@@ -1321,7 +1320,7 @@ export class Enforester {
       let arg;
       if (this.isPunctuator(this.peek(), '...')) {
         this.advance();
-        arg = new Term('SpreadElement', {
+        arg = new T.SpreadElement({
           expression: this.enforestExpressionLoop()
         });
       } else {
@@ -1340,7 +1339,7 @@ export class Enforester {
     if (this.isPunctuator(this.peek(), '.') && this.isIdentifier(this.peek(1), 'target')) {
       this.advance();
       this.advance();
-      return new Term('NewTargetExpression', {});
+      return new T.NewTargetExpression({});
     }
 
     let callee = this.enforestLeftHandSideExpression({ allowCall: false });
@@ -1350,7 +1349,7 @@ export class Enforester {
     } else {
       args = List();
     }
-    return new Term('NewExpression', {
+    return new T.NewExpression({
       callee,
       arguments: args
     });
@@ -1358,7 +1357,7 @@ export class Enforester {
 
   enforestComputedMemberExpression() {
     let enf = new Enforester(this.matchSquares(), List(), this.context);
-    return new Term('ComputedMemberExpression', {
+    return new T.ComputedMemberExpression({
       object: this.term,
       expression: enf.enforestExpression()
     });
@@ -1367,43 +1366,43 @@ export class Enforester {
   transformDestructuring(term) {
     switch (term.type) {
       case 'IdentifierExpression':
-        return new Term('BindingIdentifier', {name: term.name});
+        return new T.BindingIdentifier({name: term.name});
 
       case 'ParenthesizedExpression':
         if (term.inner.size === 1 && this.isIdentifier(term.inner.get(0))) {
-          return new Term('BindingIdentifier', { name: term.inner.get(0)});
+          return new T.BindingIdentifier({ name: term.inner.get(0)});
         }
         return term;
       case 'DataProperty':
-        return new Term('BindingPropertyProperty', {
+        return new T.BindingPropertyProperty({
           name: term.name,
           binding: this.transformDestructuringWithDefault(term.expression)
         });
       case 'ShorthandProperty':
-        return new Term('BindingPropertyIdentifier', {
-          binding: new Term('BindingIdentifier', { name: term.name }),
+        return new T.BindingPropertyIdentifier({
+          binding: new T.BindingIdentifier({ name: term.name }),
           init: null
         });
       case 'ObjectExpression':
-        return new Term('ObjectBinding', {
+        return new T.ObjectBinding({
           properties: term.properties.map(t => this.transformDestructuring(t))
         });
       case 'ArrayExpression': {
         let last = term.elements.last();
         if (last != null && last.type === 'SpreadElement') {
-          return new Term('ArrayBinding', {
+          return new T.ArrayBinding({
             elements: term.elements.slice(0, -1).map(t => t && this.transformDestructuringWithDefault(t)),
             restElement: this.transformDestructuringWithDefault(last.expression)
           });
         } else {
-          return new Term('ArrayBinding', {
+          return new T.ArrayBinding({
             elements: term.elements.map(t => t && this.transformDestructuringWithDefault(t)),
             restElement: null
           });
         }
       }
       case 'StaticPropertyName':
-        return new Term('BindingIdentifier', {
+        return new T.BindingIdentifier({
           name: term.value
         });
       case 'ComputedMemberExpression':
@@ -1422,7 +1421,7 @@ export class Enforester {
   transformDestructuringWithDefault(term) {
     switch (term.type) {
       case "AssignmentExpression":
-        return new Term('BindingWithDefault', {
+        return new T.BindingWithDefault({
           binding: this.transformDestructuring(term.binding),
           init: term.expression,
         });
@@ -1432,7 +1431,7 @@ export class Enforester {
 
   enforestCallExpression() {
     let paren = this.advance();
-    return new Term("CallExpression", {
+    return new T.CallExpression({
       callee: this.term,
       arguments: paren.inner()
     });
@@ -1457,7 +1456,7 @@ export class Enforester {
       body = enf.enforestExpressionLoop();
       this.rest = enf.rest;
     }
-    return new Term('ArrowExpression', { params, body });
+    return new T.ArrowExpression({ params, body });
   }
 
 
@@ -1466,7 +1465,7 @@ export class Enforester {
     let lookahead = this.peek();
 
     if (this.rest.size === 0 || (lookahead && !this.lineNumberEq(kwd, lookahead))) {
-      return new Term('YieldExpression', {
+      return new T.YieldExpression({
         expression: null
       });
     } else {
@@ -1476,25 +1475,24 @@ export class Enforester {
           this.advance();
       }
       let expr = this.enforestExpression();
-      let type = isGenerator ? 'YieldGeneratorExpression' : 'YieldExpression';
-      return new Term(type, {
+      return new (isGenerator ? T.YieldGeneratorExpression : T.YieldExpression)({
         expression: expr
       });
     }
   }
 
   enforestSyntaxTemplate() {
-    return new Term('SyntaxTemplate', {
+    return new T.SyntaxTemplate({
       template: this.advance()
     });
   }
 
   enforestSyntaxQuote() {
     let name = this.advance();
-    return new Term('SyntaxQuote', {
+    return new T.SyntaxQuote({
       name: name,
-      template: new Term('TemplateExpression', {
-        tag: new Term('IdentifierExpression', {
+      template: new T.TemplateExpression({
+        tag: new T.IdentifierExpression({
           name: name
         }),
         elements: this.enforestTemplateElements()
@@ -1507,7 +1505,7 @@ export class Enforester {
     this.advance();
     let property = this.advance();
 
-    return new Term("StaticMemberExpression", {
+    return new T.StaticMemberExpression({
       object: object,
       property: property
     });
@@ -1531,7 +1529,7 @@ export class Enforester {
         if (expression == null) {
           throw enf.createError(lookahead, 'expecting expression');
         }
-        elements.push(new Term('SpreadElement', { expression }));
+        elements.push(new T.SpreadElement({ expression }));
       } else {
         let term = enf.enforestExpressionLoop();
         if (term == null) {
@@ -1542,7 +1540,7 @@ export class Enforester {
       }
     }
 
-    return new Term("ArrayExpression", {
+    return new T.ArrayExpression({
       elements: List(elements)
     });
   }
@@ -1566,7 +1564,7 @@ export class Enforester {
       lastProp = prop;
     }
 
-    return new Term("ObjectExpression", {
+    return new T.ObjectExpression({
       properties: properties
     });
   }
@@ -1582,11 +1580,11 @@ export class Enforester {
         if (this.isAssign(this.peek())) {
           this.advance();
           let init = this.enforestExpressionLoop();
-          return new Term('BindingPropertyIdentifier', {
+          return new T.BindingPropertyIdentifier({
             init, binding: this.transformDestructuring(methodOrKey)
           });
         } else if (!this.isPunctuator(this.peek(), ':')) {
-          return new Term('ShorthandProperty', {
+          return new T.ShorthandProperty({
             name: methodOrKey.value
           });
         }
@@ -1595,7 +1593,7 @@ export class Enforester {
     this.matchPunctuator(':');
     let expr = this.enforestExpressionLoop();
 
-    return new Term("DataProperty", {
+    return new T.DataProperty({
       name: methodOrKey,
       expression: expr
     });
@@ -1615,7 +1613,7 @@ export class Enforester {
       this.matchParens();
       let body = this.matchCurlies();
       return {
-        methodOrKey: new Term('Getter', { name, body }),
+        methodOrKey: new T.Getter({ name, body }),
         kind: 'method'
       };
     } else if (this.isIdentifier(lookahead, 'set') && this.isPropertyName(this.peek(1))) {
@@ -1625,7 +1623,7 @@ export class Enforester {
       let param = enf.enforestBindingElement();
       let body = this.matchCurlies();
       return {
-        methodOrKey: new Term('Setter', { name, param, body }),
+        methodOrKey: new T.Setter({ name, param, body }),
         kind: 'method'
       };
     }
@@ -1637,7 +1635,7 @@ export class Enforester {
 
       let body = this.matchCurlies();
       return {
-        methodOrKey: new Term('Method', {
+        methodOrKey: new T.Method({
           isGenerator,
           name, params: formalParams, body
         }),
@@ -1655,7 +1653,7 @@ export class Enforester {
 
     if (this.isStringLiteral(lookahead) || this.isNumericLiteral(lookahead)) {
       return {
-        name: new Term('StaticPropertyName', {
+        name: new T.StaticPropertyName({
           value: this.advance()
         }),
         binding: null
@@ -1664,7 +1662,7 @@ export class Enforester {
       let enf = new Enforester(this.matchSquares(), List(), this.context);
       let expr = enf.enforestExpressionLoop();
       return {
-        name: new Term('ComputedPropertyName', {
+        name: new T.ComputedPropertyName({
           expression: expr
         }),
         binding: null
@@ -1672,8 +1670,8 @@ export class Enforester {
     }
     let name = this.advance();
     return {
-      name: new Term('StaticPropertyName', { value: name }),
-      binding: new Term('BindingIdentifier', { name })
+      name: new T.StaticPropertyName({ value: name }),
+      binding: new T.BindingIdentifier({ name })
     };
   }
 
@@ -1683,7 +1681,6 @@ export class Enforester {
     // eat the function keyword
     let fnKeyword = this.advance();
     let lookahead = this.peek();
-    let type = isExpr ? 'FunctionExpression' : 'FunctionDeclaration';
 
     if (this.isPunctuator(lookahead, "*")) {
       isGenerator = true;
@@ -1694,7 +1691,7 @@ export class Enforester {
     if (!this.isParens(lookahead)) {
       name = this.enforestBindingIdentifier();
     } else if (inDefault) {
-      name = new Term('BindingIdentifier', {
+      name = new T.BindingIdentifier({
         name: Syntax.fromIdentifier('*default*', fnKeyword)
       });
     }
@@ -1708,7 +1705,7 @@ export class Enforester {
     let enf = new Enforester(params, List(), this.context);
     let formalParams = enf.enforestFormalParameters();
 
-    return new Term(type, {
+    return new (isExpr ? T.FunctionExpression : T.FunctionDeclaration)({
       name: name,
       isGenerator: isGenerator,
       params: formalParams,
@@ -1739,7 +1736,7 @@ export class Enforester {
     let enf = new Enforester(params, List(), this.context);
     let formalParams = enf.enforestFormalParameters();
 
-    return new Term("FunctionExpression", {
+    return new T.FunctionExpression({
       name: name,
       isGenerator: isGenerator,
       params: formalParams,
@@ -1767,7 +1764,7 @@ export class Enforester {
     let enf = new Enforester(params, List(), this.context);
     let formalParams = enf.enforestFormalParameters();
 
-    return new Term("FunctionDeclaration", {
+    return new T.FunctionDeclaration({
       name: name,
       isGenerator: isGenerator,
       params: formalParams,
@@ -1788,7 +1785,7 @@ export class Enforester {
       items.push(this.enforestParam());
       this.consumeComma();
     }
-    return new Term("FormalParameters", {
+    return new T.FormalParameters({
       items: List(items), rest
     });
   }
@@ -1800,7 +1797,7 @@ export class Enforester {
   enforestUpdateExpression() {
     let operator = this.matchUnaryOperator();
 
-    return new Term('UpdateExpression', {
+    return new T.UpdateExpression({
       isPrefix: false,
       operator: operator.val(),
       operand: this.transformDestructuring(this.term)
@@ -1817,13 +1814,13 @@ export class Enforester {
     this.opCtx.prec = 14;
     this.opCtx.combine = rightTerm => {
       if (operator.val() === '++' || operator.val() === '--') {
-        return new Term('UpdateExpression', {
+        return new T.UpdateExpression({
           operator: operator.val(),
           operand: this.transformDestructuring(rightTerm),
           isPrefix: true
         });
       } else {
-        return new Term('UnaryExpression', {
+        return new T.UnaryExpression({
           operator: operator.val(),
           operand: rightTerm
         });
@@ -1849,7 +1846,7 @@ export class Enforester {
     enf = new Enforester(enf.rest, List(), this.context);
     let alternate = enf.enforestExpressionLoop();
     this.rest = enf.rest;
-    return new Term('ConditionalExpression', {
+    return new T.ConditionalExpression({
       test, consequent, alternate
     });
   }
@@ -1869,9 +1866,9 @@ export class Enforester {
       });
       this.opCtx.prec = opPrec;
       this.opCtx.combine = (rightTerm) => {
-        return new Term("BinaryExpression", {
+        return new T.BinaryExpression({
           left: leftTerm,
-          operator: opStx,
+          operator: opStx.val(),
           right: rightTerm
         });
       };
@@ -1895,7 +1892,7 @@ export class Enforester {
         let enf = new Enforester(it.inner(), List(), this.context);
         return enf.enforest("expression");
       }
-      return new Term('TemplateElement', {
+      return new T.TemplateElement({
         rawValue: it.slice.text
       });
     });

@@ -377,7 +377,7 @@ export default class Syntax {
     return this.token.value;
   }
 
-  val() {
+  val(): any {
     assert(!this.match("delimiter"), "cannot get the val of a delimiter");
     if (this.match("string")) {
       return this.token.str;

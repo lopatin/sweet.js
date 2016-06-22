@@ -33,7 +33,6 @@ test("with statement", function () {
         { type: "ExpressionStatement",
           expression: { type: "IdentifierExpression", name: "foo" } } }
   );
-
   testParse("with (x) foo;", stmt,
     { type: "WithStatement",
       object: { type: "IdentifierExpression", name: "x" },
@@ -41,7 +40,6 @@ test("with statement", function () {
         { type: "ExpressionStatement",
           expression: { type: "IdentifierExpression", name: "foo" } } }
   );
-
   testParse("with (x) { foo }", stmt,
     { type: "WithStatement",
       object: { type: "IdentifierExpression", name: "x" },
@@ -53,5 +51,4 @@ test("with statement", function () {
                 [ { type: "ExpressionStatement",
                     expression: { type: "IdentifierExpression", name: "foo" } } ] } } }
   );
-
 });

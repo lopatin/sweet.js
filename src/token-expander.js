@@ -12,6 +12,7 @@ import {  freshScope } from "./scope";
 import { ALL_PHASES } from './syntax';
 import ASTDispatcher from './ast-dispatcher';
 import { collectBindings } from './hygiene-utils';
+import ScopeRemovingReducer from './scope-removing-reducer.js';
 
 function bindImports(impTerm, exModule, context) {
   let names = [];
@@ -152,7 +153,7 @@ export default class TokenExpander extends ASTDispatcher {
 
 
   registerFunctionOrClass(term) {
-    let name = term.name.removeScope(this.context.useScope, this.context.phase);
+    let name = term.name.reduce(new ScopeRemovingReducer(this.context.useScope, this.context.phase));
     collectBindings(term.name).forEach(stx => {
       let newBinding = gensym(stx.val());
       this.context.bindings.add(stx, {
@@ -172,7 +173,7 @@ export default class TokenExpander extends ASTDispatcher {
     }
     return term.extend({
       declarators: term.declarators.map(decl => {
-        let binding = decl.binding.removeScope(this.context.useScope, this.context.phase);
+        let binding = decl.binding.reduce(new ScopeRemovingReducer(this.context.useScope, this.context.phase));
         collectBindings(binding).forEach(stx => {
           let newBinding = gensym(stx.val());
           this.context.bindings.add(stx, {

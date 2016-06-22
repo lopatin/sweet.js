@@ -1,9 +1,9 @@
 import expect from "expect.js";
 import test from 'ava';
 
-import { testThrow, expr, stmt, testParse, testEval } from "./assertions";
+import { testThrow, expr, stmt, testEval } from "./assertions";
 
-test("should work with references to function expression parameters", function () {
+test("should work with references to function expression parameters", t => {
   testEval(`
 output = function foo(x) {
    syntaxrec m = function (ctx) {
@@ -12,10 +12,10 @@ output = function foo(x) {
    return function (x) {
        return m;
    }(2);
-}(1);`, 1);
+}(1);`, output => t.is(output, 1));
   });
 
-test("should work with references to function declaration parameters", function () {
+test("should work with references to function declaration parameters", t => {
   testEval(`
 function foo(x) {
    syntaxrec m = function (ctx) {
@@ -26,10 +26,10 @@ function foo(x) {
    }
    return bar(2);
 };
-output = foo(1)`, 1);
+output = foo(1)`, output => t.is(output, 1));
 });
 
-test("should work with introduced var declarations", function () {
+test("should work with introduced var declarations", t => {
   testEval(`
 syntaxrec m = function (ctx) {
 return syntaxQuote\`var x = 42;\`
@@ -38,20 +38,20 @@ output = function foo() {
 var x = 100;
 m;
 return x;
-}()`, 100);
+}()`, output => t.is(output, 100));
 });
 
 
-test('should allow duplicate var declarations', () => {
+test('should allow duplicate var declarations', t => {
   testEval(`
     var x = 100;
     var x = 200;
     output = x;
-  `, 200);
+  `, output => t.is(output, 200));
 });
 
-test('should throw exception for duplicate let declarations', () => {
-  testThrow(`
+test('should throw exception for duplicate let declarations', t => {
+  t.throws(() => testEval(`
     let x = 100;
-    let x = 200`);
+    let x = 200`));
 });

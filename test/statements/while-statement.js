@@ -37,7 +37,8 @@ test("while statement", function () {
       test: { type: "LiteralBooleanExpression", value: true } }
   );
 
-  // testParse("while (x < 10) { x++; y--; }", stmt,
+
+  // return testParse("while (x < 10) { x++; y--; }", stmt,
   //   { type: "WhileStatement",
   //     body:
   //       { type: "BlockStatement",

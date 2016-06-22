@@ -58,12 +58,12 @@ test('should handle return and template literals', t => {
       return \`foo\`
     }
     output = f();
-  `, 'foo');
+  `, output => t.is(output, 'foo'));
 });
 
 // test('should handle interpoations for terms', t => {
-//   testEval(`syntax m = ctx => #\`return \${ctx.next('expr').value}\`;
+//   return testEval(`syntax m = ctx => #\`return \${ctx.next('expr').value}\`;
 //    output = function f() {
 //      m 1
-//    }()`, 1);
+//    }()`, output => t.is(output, 1));
 // });

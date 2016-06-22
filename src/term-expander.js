@@ -1,13 +1,14 @@
 import { List } from 'immutable';
-import Term from "./terms";
+import Term, * as T from "sweet-spec";
 import { freshScope } from "./scope";
 import ApplyScopeInParamsReducer from "./apply-scope-in-params-reducer";
 import Compiler from './compiler';
 import Syntax, { ALL_PHASES } from "./syntax";
 import { serializer } from "./serializer";
 import { Enforester } from "./enforester";
-import { processTemplate } from './template-processor.js';
+import { processTemplate } from './template-processor';
 import ASTDispatcher from './ast-dispatcher';
+import ScopeAddingReducer from './scope-adding-reducer';
 
 export default class TermExpander extends ASTDispatcher {
   constructor(context) {
@@ -24,27 +25,27 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandTemplateExpression(term) {
-    return new Term('TemplateExpression', {
+    return new T.TemplateExpression({
       tag: term.tag == null ? null : this.expand(term.tag),
       elements: term.elements.toArray()
     });
   }
 
   expandBreakStatement(term) {
-    return new Term('BreakStatement', {
+    return new T.BreakStatement({
       label: term.label ? term.label.val() : null
     });
   }
 
   expandDoWhileStatement(term) {
-    return new Term('DoWhileStatement', {
+    return new T.DoWhileStatement({
       body: this.expand(term.body),
       test: this.expand(term.test)
     });
   }
 
   expandWithStatement(term) {
-    return new Term('WithStatement', {
+    return new T.WithStatement({
       body: this.expand(term.body),
       object: this.expand(term.object)
     });
@@ -53,13 +54,13 @@ export default class TermExpander extends ASTDispatcher {
   expandDebuggerStatement(term) { return term;}
 
   expandContinueStatement(term) {
-    return new Term('ContinueStatement', {
+    return new T.ContinueStatement({
       label: term.label ? term.label.val() : null
     });
   }
 
   expandSwitchStatementWithDefault(term) {
-    return new Term('SwitchStatementWithDefault', {
+    return new T.SwitchStatementWithDefault({
       discriminant: this.expand(term.discriminant),
       preDefaultCases: term.preDefaultCases.map(c => this.expand(c)).toArray(),
       defaultCase: this.expand(term.defaultCase),
@@ -68,14 +69,14 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandComputedMemberExpression(term) {
-    return new Term('ComputedMemberExpression', {
+    return new T.ComputedMemberExpression({
       object: this.expand(term.object),
       expression: this.expand(term.expression)
     });
   }
 
   expandSwitchStatement(term) {
-    return new Term('SwitchStatement', {
+    return new T.SwitchStatement({
       discriminant: this.expand(term.discriminant),
       cases: term.cases.map(c => this.expand(c)).toArray()
     });
@@ -83,7 +84,7 @@ export default class TermExpander extends ASTDispatcher {
 
   expandFormalParameters(term) {
     let rest = term.rest == null ? null : this.expand(term.rest);
-    return new Term('FormalParameters', {
+    return new T.FormalParameters({
       items: term.items.map(i => this.expand(i)),
       rest
     });
@@ -94,20 +95,20 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandSwitchDefault(term) {
-    return new Term('SwitchDefault', {
+    return new T.SwitchDefault({
       consequent: term.consequent.map(c => this.expand(c)).toArray()
     });
   }
 
   expandSwitchCase(term) {
-    return new Term('SwitchCase', {
+    return new T.SwitchCase({
       test: this.expand(term.test),
       consequent: term.consequent.map(c => this.expand(c)).toArray()
     });
   }
 
   expandForInStatement(term) {
-    return new Term('ForInStatement', {
+    return new T.ForInStatement({
       left: this.expand(term.left),
       right: this.expand(term.right),
       body: this.expand(term.body)
@@ -115,7 +116,7 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandTryCatchStatement(term) {
-    return new Term('TryCatchStatement', {
+    return new T.TryCatchStatement({
       body: this.expand(term.body),
       catchClause: this.expand(term.catchClause)
     });
@@ -123,7 +124,7 @@ export default class TermExpander extends ASTDispatcher {
 
   expandTryFinallyStatement(term) {
     let catchClause = term.catchClause == null ? null : this.expand(term.catchClause);
-    return new Term('TryFinallyStatement', {
+    return new T.TryFinallyStatement({
       body: this.expand(term.body),
       catchClause,
       finalizer: this.expand(term.finalizer)
@@ -131,20 +132,20 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandCatchClause(term) {
-    return new Term('CatchClause', {
+    return new T.CatchClause({
       binding: this.expand(term.binding),
       body: this.expand(term.body)
     });
   }
 
   expandThrowStatement(term) {
-    return new Term('ThrowStatement', {
+    return new T.ThrowStatement({
       expression: this.expand(term.expression)
     });
   }
 
   expandForOfStatement(term) {
-    return new Term('ForOfStatement', {
+    return new T.ForOfStatement({
       left: this.expand(term.left),
       right: this.expand(term.right),
       body: this.expand(term.body)
@@ -159,34 +160,34 @@ export default class TermExpander extends ASTDispatcher {
     return term;
   }
   expandBindingPropertyProperty(term) {
-    return new Term('BindingPropertyProperty', {
+    return new T.BindingPropertyProperty({
       name: this.expand(term.name),
       binding: this.expand(term.binding)
     });
   }
 
   expandComputedPropertyName(term) {
-    return new Term('ComputedPropertyName', {
+    return new T.ComputedPropertyName({
       expression: this.expand(term.expression)
     });
   }
 
   expandObjectBinding(term) {
-    return new Term('ObjectBinding', {
+    return new T.ObjectBinding({
       properties: term.properties.map(t => this.expand(t)).toArray()
     });
   }
 
   expandArrayBinding(term) {
     let restElement = term.restElement == null ? null : this.expand(term.restElement);
-    return new Term('ArrayBinding', {
+    return new T.ArrayBinding({
       elements: term.elements.map(t => t == null ? null : this.expand(t)).toArray(),
       restElement
     });
   }
 
   expandBindingWithDefault(term) {
-    return new Term('BindingWithDefault', {
+    return new T.BindingWithDefault({
       binding: this.expand(term.binding),
       init: this.expand(term.init)
     });
@@ -194,11 +195,11 @@ export default class TermExpander extends ASTDispatcher {
 
   expandShorthandProperty(term) {
     // because hygiene, shorthand properties must turn into DataProperties
-    return new Term('DataProperty', {
-      name: new Term('StaticPropertyName', {
+    return new T.DataProperty({
+      name: new T.StaticPropertyName({
         value: term.name
       }),
-      expression: new Term('IdentifierExpression', {
+      expression: new T.IdentifierExpression({
         name: term.name
       })
     });
@@ -210,25 +211,25 @@ export default class TermExpander extends ASTDispatcher {
     let test = term.test == null ? null : this.expand(term.test);
     let update = term.update == null ? null : this.expand(term.update);
     let body = this.expand(term.body);
-    return new Term('ForStatement', { init, test, update, body });
+    return new T.ForStatement({ init, test, update, body });
   }
 
   expandYieldExpression(term) {
     let expr = term.expression == null ? null : this.expand(term.expression);
-    return new Term('YieldExpression', {
+    return new T.YieldExpression({
       expression: expr
     });
   }
 
   expandYieldGeneratorExpression(term) {
     let expr = term.expression == null ? null : this.expand(term.expression);
-    return new Term('YieldGeneratorExpression', {
+    return new T.YieldGeneratorExpression({
       expression: expr
     });
   }
 
   expandWhileStatement(term) {
-    return new Term('WhileStatement', {
+    return new T.WhileStatement({
       test: this.expand(term.test),
       body: this.expand(term.body)
     });
@@ -237,7 +238,7 @@ export default class TermExpander extends ASTDispatcher {
   expandIfStatement(term) {
     let consequent = term.consequent == null ? null : this.expand(term.consequent);
     let alternate = term.alternate == null ? null : this.expand(term.alternate);
-    return new Term('IfStatement', {
+    return new T.IfStatement({
       test: this.expand(term.test),
       consequent: consequent,
       alternate: alternate
@@ -245,7 +246,7 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandBlockStatement(term) {
-    return new Term('BlockStatement', {
+    return new T.BlockStatement({
       block: this.expand(term.block)
     });
   }
@@ -257,7 +258,7 @@ export default class TermExpander extends ASTDispatcher {
 
     let markedBody, bodyTerm;
     markedBody = term.statements.map(b => b.addScope(scope, this.context.bindings, ALL_PHASES));
-    bodyTerm = new Term('Block', {
+    bodyTerm = new T.Block({
       statements: compiler.compile(markedBody)
     });
     this.context.currentScope.pop();
@@ -265,7 +266,7 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandVariableDeclarationStatement(term) {
-    return new Term('VariableDeclarationStatement', {
+    return new T.VariableDeclarationStatement({
       declaration: this.expand(term.declaration)
     });
   }
@@ -273,13 +274,13 @@ export default class TermExpander extends ASTDispatcher {
     if (term.expression == null) {
       return term;
     }
-    return new Term("ReturnStatement", {
+    return new T.ReturnStatement({
       expression: this.expand(term.expression)
     });
   }
 
   expandClassDeclaration(term) {
-    return new Term('ClassDeclaration', {
+    return new T.ClassDeclaration({
       name: term.name == null ? null : this.expand(term.name),
       super: term.super == null ? null : this.expand(term.super),
       elements: term.elements.map(el => this.expand(el)).toArray()
@@ -287,7 +288,7 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandClassExpression(term) {
-    return new Term('ClassExpression', {
+    return new T.ClassExpression({
       name: term.name == null ? null : this.expand(term.name),
       super: term.super == null ? null : this.expand(term.super),
       elements: term.elements.map(el => this.expand(el)).toArray()
@@ -295,7 +296,7 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandClassElement(term) {
-    return new Term('ClassElement', {
+    return new T.ClassElement({
       isStatic: term.isStatic,
       method: this.expand(term.method)
     });
@@ -308,43 +309,43 @@ export default class TermExpander extends ASTDispatcher {
   expandSyntaxTemplate(term) {
     let r = processTemplate(term.template.inner());
     let str = Syntax.from("string", serializer.write(r.template));
-    let callee = new Term('IdentifierExpression', { name: Syntax.from("identifier", 'syntaxTemplate') });
+    let callee = new T.IdentifierExpression({ name: Syntax.from("identifier", 'syntaxTemplate') });
 
     let expandedInterps = r.interp.map(i => {
       let enf = new Enforester(i, List(), this.context);
       return this.expand(enf.enforest('expression'));
     });
 
-    let args = List.of(new Term('LiteralStringExpression', {value: str }))
+    let args = List.of(new T.LiteralStringExpression({value: str }))
                    .concat(expandedInterps);
 
-    return new Term('CallExpression', {
+    return new T.CallExpression({
       callee, arguments: args
     });
   }
 
   expandSyntaxQuote(term) {
-    let str = new Term("LiteralStringExpression", {
+    let str = new T.LiteralStringExpression({
       value: Syntax.from("string", serializer.write(term.name))
     });
 
-    return new Term("TemplateExpression", {
+    return new T.TemplateExpression({
       tag: term.template.tag,
-      elements: term.template.elements.push(str).push(new Term('TemplateElement', {
+      elements: term.template.elements.push(str).push(new T.TemplateElement({
         rawValue: ''
       })).toArray()
     });
   }
 
   expandStaticMemberExpression(term) {
-    return new Term("StaticMemberExpression", {
+    return new T.StaticMemberExpression({
       object: this.expand(term.object),
       property: term.property
     });
   }
 
   expandArrayExpression(term) {
-    return new Term("ArrayExpression", {
+    return new T.ArrayExpression({
       elements: term.elements.map(t => t == null ? t : this.expand(t))
     });
   }
@@ -358,13 +359,13 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandExport(term) {
-    return new Term('Export', {
+    return new T.Export({
       declaration: this.expand(term.declaration)
     });
   }
 
   expandExportDefault(term) {
-    return new Term('ExportDefault', {
+    return new T.ExportDefault({
       body: this.expand(term.body)
     });
   }
@@ -387,7 +388,7 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandDataProperty(term) {
-    return new Term("DataProperty", {
+    return new T.DataProperty({
       name: this.expand(term.name),
       expression: this.expand(term.expression)
     });
@@ -395,14 +396,14 @@ export default class TermExpander extends ASTDispatcher {
 
 
   expandObjectExpression(term) {
-    return new Term("ObjectExpression", {
+    return new T.ObjectExpression({
       properties: term.properties.map(t => this.expand(t))
     });
   }
 
   expandVariableDeclarator(term) {
     let init = term.init == null ? null : this.expand(term.init);
-    return new Term("VariableDeclarator", {
+    return new T.VariableDeclarator({
       binding: this.expand(term.binding),
       init: init
     });
@@ -412,7 +413,7 @@ export default class TermExpander extends ASTDispatcher {
     if (term.kind === 'syntax' || term.kind === 'syntaxrec') {
       return term;
     }
-    return new Term("VariableDeclaration", {
+    return new T.VariableDeclaration({
       kind: term.kind,
       declarators: term.declarators.map(d => this.expand(d))
     });
@@ -432,14 +433,14 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandUnaryExpression(term) {
-    return new Term('UnaryExpression', {
+    return new T.UnaryExpression({
       operator: term.operator,
       operand: this.expand(term.operand)
     });
   }
 
   expandUpdateExpression(term) {
-    return new Term('UpdateExpression', {
+    return new T.UpdateExpression({
       isPrefix: term.isPrefix,
       operator: term.operator,
       operand: this.expand(term.operand)
@@ -449,7 +450,7 @@ export default class TermExpander extends ASTDispatcher {
   expandBinaryExpression(term) {
     let left = this.expand(term.left);
     let right = this.expand(term.right);
-    return new Term("BinaryExpression", {
+    return new T.BinaryExpression({
       left: left,
       operator: term.operator,
       right: right
@@ -457,7 +458,7 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandConditionalExpression(term) {
-    return new Term('ConditionalExpression', {
+    return new T.ConditionalExpression({
       test: this.expand(term.test),
       consequent: this.expand(term.consequent),
       alternate: this.expand(term.alternate)
@@ -470,7 +471,7 @@ export default class TermExpander extends ASTDispatcher {
     let callee = this.expand(term.callee);
     let enf = new Enforester(term.arguments, List(), this.context);
     let args = enf.enforestArgumentList().map(arg => this.expand(arg));
-    return new Term('NewExpression', {
+    return new T.NewExpression({
       callee,
       arguments: args.toArray()
     });
@@ -482,27 +483,27 @@ export default class TermExpander extends ASTDispatcher {
     let callee = this.expand(term.callee);
     let enf = new Enforester(term.arguments, List(), this.context);
     let args = enf.enforestArgumentList().map(arg => this.expand(arg));
-    return new Term("CallExpression", {
+    return new T.CallExpression({
       callee: callee,
       arguments: args
     });
   }
 
   expandSpreadElement(term) {
-    return new Term('SpreadElement', {
+    return new T.SpreadElement({
       expression: this.expand(term.expression)
     });
   }
 
   expandExpressionStatement(term) {
     let child = this.expand(term.expression);
-    return new Term("ExpressionStatement", {
+    return new T.ExpressionStatement({
       expression: child
     });
   }
 
   expandLabeledStatement(term) {
-    return new Term('LabeledStatement', {
+    return new T.LabeledStatement({
       label: term.label.val(),
       body: this.expand(term.body)
     });
@@ -510,11 +511,9 @@ export default class TermExpander extends ASTDispatcher {
 
   doFunctionExpansion(term, type) {
     let scope = freshScope("fun");
-    let red = new ApplyScopeInParamsReducer(scope, this.context);
     let params;
     if (type !== 'Getter' && type !== 'Setter') {
-      params = red.transform(term.params);
-      params = this.expand(params);
+      params = this.expand(term.params);
     }
     this.context.currentScope.push(scope);
     let compiler = new Compiler(this.context.phase, this.context.env, this.context.store, this.context);
@@ -522,39 +521,57 @@ export default class TermExpander extends ASTDispatcher {
     let markedBody, bodyTerm;
     if (term.body instanceof Term) {
       // Arrow functions have a single term as their body
-      bodyTerm = this.expand(term.body.addScope(scope, this.context.bindings, ALL_PHASES));
+      bodyTerm = this.expand(term.body.reduce(new ScopeAddingReducer(scope, this.context.bindings, ALL_PHASES)));
     } else {
       markedBody = term.body.map(b => b.addScope(scope, this.context.bindings, ALL_PHASES));
-      bodyTerm = new Term("FunctionBody", {
+      bodyTerm = new T.FunctionBody({
         directives: List(),
         statements: compiler.compile(markedBody)
       });
     }
     this.context.currentScope.pop();
 
-    if (type === 'Getter') {
-      return new Term(type, {
-        name: this.expand(term.name),
-        body: bodyTerm
-      });
-    } else if (type === 'Setter') {
-      return new Term(type, {
-        name: this.expand(term.name),
-        param: term.param,
-        body: bodyTerm
-      });
-    } else if (type === 'ArrowExpression') {
-      return new Term(type, {
-        params: params,
-        body: bodyTerm
-      });
+    switch (type) {
+      case 'Getter':
+        return new T.Getter({
+          name: this.expand(term.name),
+          body: bodyTerm
+        });
+      case 'Setter':
+        return new T.Setter({
+          name: this.expand(term.name),
+          param: term.param,
+          body: bodyTerm
+        });
+      case 'Method':
+        return new T.Method({
+          name: term.name,
+          isGenerator: term.isGenerator,
+          params: params,
+          body: bodyTerm
+        });
+      case 'ArrowExpression':
+        return new T.ArrowExpression({
+          params: params,
+          body: bodyTerm
+        });
+      case 'FunctionExpression':
+        return new T.FunctionExpression({
+          name: term.name,
+          isGenerator: term.isGenerator,
+          params: params,
+          body: bodyTerm
+        });
+      case 'FunctionDeclaration':
+        return new T.FunctionDeclaration({
+          name: term.name,
+          isGenerator: term.isGenerator,
+          params: params,
+          body: bodyTerm
+        });
+      default:
+        throw new Error(`Unknown function type: ${type}`);
     }
-    return new Term(type, {
-      name: term.name,
-      isGenerator: term.isGenerator,
-      params: params,
-      body: bodyTerm
-    });
   }
 
   expandMethod(term) {
@@ -578,7 +595,7 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandCompoundAssignmentExpression(term) {
-    return new Term("CompoundAssignmentExpression", {
+    return new T.CompoundAssignmentExpression({
       binding: this.expand(term.binding),
       operator: term.operator,
       expression: this.expand(term.expression)
@@ -586,7 +603,7 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandAssignmentExpression(term) {
-    return new Term("AssignmentExpression", {
+    return new T.AssignmentExpression({
       binding: this.expand(term.binding),
       expression: this.expand(term.expression)
     });
@@ -610,7 +627,7 @@ export default class TermExpander extends ASTDispatcher {
   expandIdentifierExpression(term) {
     let trans = this.context.env.get(term.name.resolve(this.context.phase));
     if (trans) {
-      return new Term("IdentifierExpression", {
+      return new T.IdentifierExpression({
         name: trans.id
       });
     }

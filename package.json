@@ -24,16 +24,16 @@
   "scripts": {
     "clean": "rm -rf build",
     "lint": "eslint src && flow",
-    "prebuild": "npm run lint && mkdir -p build/test build/sweet dist/",
+    "prebuild": "mkdir -p build/test build/sweet dist/",
     "build:src": "babel --out-dir build/src src",
-    "build:test": "rsync -R test/**/*.js build & cp test/*.js build/test && babel --out-file build/test/assertions.js test/assertions.js",
+    "build:test": "rsync -rR test build & cp test/*.js build/test && babel --out-file build/test/assertions.js test/assertions.js",
     "build:browser": "webpack build/src/sweet.js --output-library-target amd --output-library sweet",
     "build": "npm run build:src && npm run build:test",
     "pretest": "npm run build",
     "test:curr": "ava build/test/modules/export.js",
     "test:smoke": "ava build/test/*.js !build/test/assertions.js",
     "test:full": "npm run build && ava",
-    "test": "npm run test:smoke",
+    "test": "ava build/test/expressions/*.js",
     "report": "nyc ava && nyc report --reporter=html",
     "docs": "asciidoctorjs doc/1.0/tutorial.adoc & asciidoctorjs doc/1.0/reference.adoc",
     "dist": "npm run build && npm run build:browser && npm run docs && cp build/src/*.js dist"
@@ -42,7 +42,7 @@
     "test": "test"
   },
   "dependencies": {
-    "sweet-spec": "1.1.0",
+    "sweet-spec": "2.0.0",
     "babel-core": "^6.5.0",
     "immutable": "^3.7.4",
     "ramda": "^0.19.0",
@@ -67,6 +67,7 @@
     "babel-eslint": "^6.1.2",
     "babel-plugin-transform-flow-strip-types": "^6.14.0",
     "babel-preset-es2015-node5": "^1.2.0",
+    "babel-preset-es2015-node6": "^0.2.0",
     "eslint": "^2.11.1",
     "eslint-plugin-flowtype": "^2.11.4",
     "event-stream": "^3.3.2",

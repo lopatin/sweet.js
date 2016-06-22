@@ -7,7 +7,7 @@ import { Maybe } from 'ramda-fantasy';
 import { assert } from './errors';
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
-import Term from './terms';
+import Term from 'sweet-spec';
 
 const LSYNTAX = { name: 'left-syntax' };
 const RSYNTAX = { name: 'right-syntax' };
