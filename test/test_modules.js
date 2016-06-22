@@ -35,11 +35,30 @@ test('importing for syntax with a single number exported', () => {
   `, true, loader);
 });
 
-test('importing for syntax with single function exported', () => {
+test('import for syntax; export var; function', () => {
   let loader = {
     './id.js': `
       #lang 'base';
       export var id = function (x) {
+        return x;
+      }
+    `
+  };
+  testEval(`
+    import { id } from './id.js' for syntax;
+
+    syntax m = ctx => {
+      return id(#\`1\`);
+    }
+    output = m;
+  `, 1, loader);
+});
+
+test('import for syntax; export declaration; function', () => {
+  let loader = {
+    './id.js': `
+      #lang 'base';
+      export function id(x) {
         return x;
       }
     `
@@ -99,3 +118,29 @@ test('importing a macro for syntax only binds what is named', () => {
     output = test;
   `, 1, loader);
 });
+//
+// test('importing a chain for syntax works', t => {
+//   let loader = {
+//     'b': `#lang 'sweet.js';
+//       export function b(x) { return x; }
+//     `,
+//     'a': `#lang 'sweet.js';
+//       import { b } from 'b' for syntax;
+//
+//       export function a() {
+//         return b(1);
+//       }
+//     `
+//   };
+//
+//   testEval(`#lang 'sweet.js';
+//     import { a } from 'a' for syntax;
+//     syntax m = ctx => {
+//       if (a() !== 1) {
+//         throw new Error('un expected something or rather');
+//       }
+//       return #\`1\`;
+//     }
+//     output = m
+//   `, 1, loader);
+// });
