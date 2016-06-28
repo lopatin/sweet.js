@@ -31,7 +31,7 @@
     "build:browser": "webpack build/src/sweet.js --output-library-target amd --output-library sweet",
     "build": "npm run build:sweet && npm run build:src && npm run build:test",
     "pretest": "npm run lint && npm run build",
-    "test:curr": "ava build/test/modules/export.js",
+    "test:curr": "ava build/test/test-sweet-loader.js",
     "test:smoke": "ava build/test/*.js !build/test/assertions.js",
     "test": "ava",
     "report": "nyc ava && nyc report --reporter=html",
@@ -43,6 +43,7 @@
   },
   "dependencies": {
     "babel-core": "^6.5.0",
+    "es6-module-loader": "^0.17.11",
     "immutable": "^3.7.4",
     "ramda": "^0.19.0",
     "ramda-fantasy": "^0.4.1",
