@@ -1,6 +1,13 @@
 import { Loader } from 'es6-module-loader';
 import { Modules } from './modules';
 
+class SweetAddress {
+  constructor(path, phase) {
+    this.path = path;
+    this.phase = phase;
+  }
+}
+
 class SweetLoader extends Loader {
   constructor(debugRegistry) {
     super();
@@ -25,8 +32,8 @@ class SweetLoader extends Loader {
 
   // override
   translate({name, address, source, metadata}) {
-    this.compile(source);
-    this.compiledSource.set(name, source);
+    let compiledModule = this.compile(source);
+    this.compiledSource.set(address, CodeGen.gen(compiledModule));
     return source;
   }
 
@@ -60,31 +67,6 @@ class SweetLoader extends Loader {
     let importEntries = [];
     let exportEntries = [];
     let pragmas = [];
-    let filteredTerms = terms.reduce((acc, t) => {
-      return _.cond([
-        [isImport, t => {
-          importEntries.push(t);
-          return acc;
-        }],
-        [isExport, t => {
-          // exportEntries.push(t);
-          // return acc.concat(t);
-          if (t.declaration) {
-            exportEntries.push(convertExport(t));
-            if (isVariableDeclaration(t.declaration)) {
-              return acc.concat(new Term('VariableDeclarationStatement', {
-                declaration: t.declaration
-              }));
-            }
-            return acc.concat(t.declaration);
-          }
-          exportEntries.push(t);
-          return acc;
-        }],
-        [isPragma, t => { pragmas.push(t); return acc; } ],
-        [_.T, t => acc.concat(t) ]
-      ])(t);
-    }, List());
     return new Module(
       path,
       mod.isNative,
