@@ -1,47 +1,87 @@
 import { Loader } from 'es6-module-loader';
 import { Modules } from './modules';
+import Reader from "./shift-reader";
+import { Scope, freshScope } from "./scope";
+import Env from "./env";
+import Store from "./store";
+import { List } from 'immutable';
+import Compiler from "./compiler";
+import { ALL_PHASES } from './syntax';
+import BindingMap from "./binding-map.js";
+import * as _ from "ramda";
 
-class SweetAddress {
-  constructor(path, phase) {
-    this.path = path;
-    this.phase = phase;
-  }
-}
+const phaseInModulePathRegexp = /(.*):(\d+)\s*$/;
 
-class SweetLoader extends Loader {
-  constructor(debugRegistry) {
+export class SweetLoader extends Loader {
+  constructor() {
     super();
-    this.debugRegistry = debugRegistry;
-    this.compiledSource = new Map();
+    this.sourceCache = new Map();
+    this.compiledCache = new Map();
+
+    let bindings = new BindingMap();
+    this.context = {
+      bindings,
+      loader: this,
+      transform: c => {
+        return { code: c };
+      }
+    };
   }
 
-  // override
-  normalize(name) {
+  normalize(name, refererName, refererAddress) {
+    // takes `..path/to/source.js:<phase>`
+    // gives `/abs/path/to/source.js:<phase>`
+    // missing phases are turned into 0
+    if (!phaseInModulePathRegexp.test(name)) {
+      return `${name}:0`;
+    }
     return name;
   }
 
-  // override
   locate({name, metadata}) {
-    return name;
+    // takes `/abs/path/to/source.js:<phase>`
+    // gives { path: '/abs/path/to/source.js', phase: <phase> }
+    let match = name.match(phaseInModulePathRegexp);
+    if (match && match.length >= 3) {
+      return {
+        path: match[1],
+        phase: parseInt(match[2], 10)
+      };
+    }
+    throw new Error(`Module ${name} is missing phase information`);
   }
 
-  // override
   fetch({name, address, metadata}) {
-    return this.debugRegistry[address];
+    let self = this;
+    return new Promise((resolve, reject) => {
+      if (self.sourceCache.has(address.path)) {
+        setTimeout(() => resolve(self.sourceCache.get(address.path)), 0);
+      } else {
+        require('fs').readFile(address.path, 'utf8', (err, data) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          self.sourceCache.set(address.path, data);
+          resolve(data);
+        });
+      }
+    });
   }
 
-  // override
   translate({name, address, source, metadata}) {
+    if (this.compiledCache.has(address.path)) {
+      return this.compiledCache.get(address.path);
+    }
     let compiledModule = this.compile(source);
-    this.compiledSource.set(address, CodeGen.gen(compiledModule));
-    return source;
+    this.compiledCache.set(address.path, compiledModule);
+    return compiledModule;
   }
 
-  // override
   instantiate({name, address, source, metadata}) {
     let self = this;
     return {
-      deps: [],
+      deps: [], // dependencies at needed phases
       execute() {
         return self.newModule({ a: 'a' });
       }
@@ -49,47 +89,55 @@ class SweetLoader extends Loader {
   }
 
 
+  read(source) {
+    return new Reader(source).read();
+  }
 
-  compile(mod, path) {
-    let stxl = mod.body;
+  compile(source) {
+    let stxl = this.read(source);
     let outScope = freshScope('outsideEdge');
     let inScope = freshScope(`insideEdge0`);
     // the compiler starts at phase 0, with an empty environment and store
-    let compiler = new Compiler(0, new Env(), new Store(), _.merge(this.context, {
+    let compiler = new Compiler(0, new Env(), new Store(),  _.merge(this.context, {
       currentScope: [outScope, inScope],
-      cwd: path === '<<entrypoint>>' ? this.context.cwd : dirname(path)
     }));
     let terms = compiler.compile(stxl.map(s =>
       s.addScope(outScope, this.context.bindings, ALL_PHASES)
        .addScope(inScope, this.context.bindings, 0)
     ));
 
-    let importEntries = [];
-    let exportEntries = [];
-    let pragmas = [];
-    return new Module(
-      path,
-      mod.isNative,
-      List(importEntries),
-      List(exportEntries),
-      List(pragmas),
-      filteredTerms
-    );
+    return terms;
   }
 
 }
 
-// type Path = string
+function makeLoader(debugStore) {
+  let l = new SweetLoader();
+  if (debugStore) {
+    // debugging does not go through any normalization
+    l.normalize = function normalize(name) {
+      if (!phaseInModulePathRegexp.test(name)) {
+        return `${name}:0`;
+      }
+      return name;
+    };
+    l.fetch = function fetch({ name, address, metadata }) {
+      if (debugStore.has(address.path)) {
+        return debugStore.get(address.path);
+      }
+      throw new Error(`The module ${name} is not in the debug store`);
+    };
+  }
+  return l;
+}
 
-// (Path, SweetOptions) -> Promise<Module>
-export function load(entryPath, registry) {
-  let l = new SweetLoader(registry);
+export function load(entryPath, debugStore) {
+  let l = makeLoader(debugStore);
   return l.import(entryPath);
 }
 
-// (Path, SweetOptions) -> Promise<string>
-export default function compile(entryPath, registry) {
-  let l = new SweetLoader(registry);
+export default function compile(entryPath, debugStore) {
+  let l = makeLoader(debugStore);
   return l.import(entryPath).then(function (mod) {
     return l.compiledSource.get(l.normalize(entryPath));
   });
