@@ -10,11 +10,10 @@ process:
 
 var compile = require("./build/src/sweet-loader.js").default;
 
-let registry = {
-  'foo': `42`
-};
-
 debugger;
-compile('foo', registry).then(result => {
+
+compile('./test.js').then(result => {
   console.log(result);
+}).catch(err => {
+  console.log('errored: ' + err);
 });

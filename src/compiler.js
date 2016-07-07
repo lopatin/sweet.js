@@ -25,9 +25,6 @@ export default class Compiler {
       store: this.store
     }));
 
-    return _.pipe(
-      _.bind(tokenExpander.expand, tokenExpander),
-      _.map(t => termExpander.expand(t))
-    )(stxl);
+    return tokenExpander.expand(stxl).map(t => termExpander.expand(t));
   }
 }

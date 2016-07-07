@@ -9,8 +9,33 @@ import Compiler from "./compiler";
 import { ALL_PHASES } from './syntax';
 import BindingMap from "./binding-map.js";
 import * as _ from "ramda";
+import * as T from './terms';
 
 const phaseInModulePathRegexp = /(.*):(\d+)\s*$/;
+
+const isCompiletimeItem = _.either(T.isCompiletimeStatement, T.isExportSyntax);
+
+class SweetModule {
+  constructor(items) {
+    this.items = items;
+  }
+
+  runtimeItems() {
+    return this.items.filter(_.complement(isCompiletimeItem));
+  }
+
+  compiletimeItems() {
+    return this.items.filter(isCompiletimeItem);
+  }
+
+  importEntries() {
+    return this.items.filter(T.isImportDeclaration);
+  }
+
+  exportEntries() {
+    return this.items.filter(T.isExportDeclaration);
+  }
+}
 
 export class SweetLoader extends Loader {
   constructor() {
@@ -70,12 +95,14 @@ export class SweetLoader extends Loader {
   }
 
   translate({name, address, source, metadata}) {
+    let self = this;
     if (this.compiledCache.has(address.path)) {
       return this.compiledCache.get(address.path);
     }
-    let compiledModule = this.compile(source);
-    this.compiledCache.set(address.path, compiledModule);
-    return compiledModule;
+    return this.compile(source).then(compiledModule => {
+      self.compiledCache.set(address.path, compiledModule);
+      return compiledModule;
+    });
   }
 
   instantiate({name, address, source, metadata}) {
@@ -96,17 +123,17 @@ export class SweetLoader extends Loader {
   compile(source) {
     let stxl = this.read(source);
     let outScope = freshScope('outsideEdge');
-    let inScope = freshScope(`insideEdge0`);
+    let inScope = freshScope('insideEdge0');
     // the compiler starts at phase 0, with an empty environment and store
     let compiler = new Compiler(0, new Env(), new Store(),  _.merge(this.context, {
       currentScope: [outScope, inScope],
     }));
-    let terms = compiler.compile(stxl.map(s =>
+    let mod = new SweetModule(compiler.compile(stxl.map(s =>
       s.addScope(outScope, this.context.bindings, ALL_PHASES)
        .addScope(inScope, this.context.bindings, 0)
-    ));
+    )));
 
-    return terms;
+    return Promise.resolve(mod);
   }
 
 }
@@ -138,7 +165,7 @@ export function load(entryPath, debugStore) {
 
 export default function compile(entryPath, debugStore) {
   let l = makeLoader(debugStore);
-  return l.import(entryPath).then(function (mod) {
+  return l.load(entryPath).then(function () {
     return l.compiledSource.get(l.normalize(entryPath));
   });
 }

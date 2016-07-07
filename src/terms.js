@@ -222,3 +222,4 @@ export const isCompiletimeStatement = term => {
   return (term instanceof Term) && isVariableDeclarationStatement(term) && isCompiletimeDeclaration(term.declaration);
 };
 export const isImportDeclaration = R.either(isImport, isImportNamespace);
+export const isExportDeclaration = R.either(isExport, isExportDefault, isExportFrom, isExportAllFrom);
