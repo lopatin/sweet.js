@@ -8,34 +8,13 @@ import { List } from 'immutable';
 import Compiler from "./compiler";
 import { ALL_PHASES } from './syntax';
 import BindingMap from "./binding-map.js";
+import SweetModule from './sweet-module';
 import * as _ from "ramda";
 import * as T from './terms';
 
 const phaseInModulePathRegexp = /(.*):(\d+)\s*$/;
 
 const isCompiletimeItem = _.either(T.isCompiletimeStatement, T.isExportSyntax);
-
-class SweetModule {
-  constructor(items) {
-    this.items = items;
-  }
-
-  runtimeItems() {
-    return this.items.filter(_.complement(isCompiletimeItem));
-  }
-
-  compiletimeItems() {
-    return this.items.filter(isCompiletimeItem);
-  }
-
-  importEntries() {
-    return this.items.filter(T.isImportDeclaration);
-  }
-
-  exportEntries() {
-    return this.items.filter(T.isExportDeclaration);
-  }
-}
 
 export class SweetLoader extends Loader {
   constructor() {
@@ -58,9 +37,9 @@ export class SweetLoader extends Loader {
     // gives `/abs/path/to/source.js:<phase>`
     // missing phases are turned into 0
     if (!phaseInModulePathRegexp.test(name)) {
-      return `${name}:0`;
+      return Promise.resolve(`${name}:0`);
     }
-    return name;
+    return Promise.resolve(name);
   }
 
   locate({name, metadata}) {
@@ -68,10 +47,10 @@ export class SweetLoader extends Loader {
     // gives { path: '/abs/path/to/source.js', phase: <phase> }
     let match = name.match(phaseInModulePathRegexp);
     if (match && match.length >= 3) {
-      return {
+      return Promise.resolve({
         path: match[1],
         phase: parseInt(match[2], 10)
-      };
+      });
     }
     throw new Error(`Module ${name} is missing phase information`);
   }
@@ -97,7 +76,7 @@ export class SweetLoader extends Loader {
   translate({name, address, source, metadata}) {
     let self = this;
     if (this.compiledCache.has(address.path)) {
-      return this.compiledCache.get(address.path);
+      return Promise.resolve(this.compiledCache.get(address.path));
     }
     return this.compile(source).then(compiledModule => {
       self.compiledCache.set(address.path, compiledModule);
@@ -110,11 +89,27 @@ export class SweetLoader extends Loader {
     return {
       deps: [], // dependencies at needed phases
       execute() {
+        if (address.phase === 0) {
+          return self.newModule({});
+        }
         return self.newModule({ a: 'a' });
       }
     };
   }
 
+  // skip instantiate
+  getCompiled(entryPath) {
+    this.normalize(entryPath)
+        .then(name => {
+          return { name, addr: this.locate({ name, metadata: {} }) };
+        })
+        .then(({name, addr, metadata}) => {
+          return { name, addr, metadata, source: this.fetch({ name, addr, metadata }) };
+        })
+        .then(({name, addr, source, metadata}) => {
+          return this.translate({ name, addr, source, metadata });
+        });
+  }
 
   read(source) {
     return new Reader(source).read();
@@ -141,16 +136,15 @@ export class SweetLoader extends Loader {
 function makeLoader(debugStore) {
   let l = new SweetLoader();
   if (debugStore) {
-    // debugging does not go through any normalization
     l.normalize = function normalize(name) {
       if (!phaseInModulePathRegexp.test(name)) {
-        return `${name}:0`;
+        return Promise.resolve(`${name}:0`);
       }
-      return name;
+      return Promise.resolve(name);
     };
     l.fetch = function fetch({ name, address, metadata }) {
       if (debugStore.has(address.path)) {
-        return debugStore.get(address.path);
+        return Promise.resolve(debugStore.get(address.path));
       }
       throw new Error(`The module ${name} is not in the debug store`);
     };
@@ -159,13 +153,9 @@ function makeLoader(debugStore) {
 }
 
 export function load(entryPath, debugStore) {
-  let l = makeLoader(debugStore);
-  return l.import(entryPath);
+  return makeLoader(debugStore).import(entryPath);
 }
 
 export default function compile(entryPath, debugStore) {
-  let l = makeLoader(debugStore);
-  return l.load(entryPath).then(function () {
-    return l.compiledSource.get(l.normalize(entryPath));
-  });
+  return makeLoader(debugStore).getCompiled(entryPath);
 }
