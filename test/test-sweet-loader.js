@@ -1,7 +1,6 @@
 import test from 'ava';
 
 import compile, { load, SweetLoader } from '../src/sweet-loader';
-import codegen from '../src/codegen';
 
 // SweetLoader unit tests
 
@@ -30,7 +29,13 @@ test('locate throws an error if phase is missing', t => {
 
 function evalit(source) {
   var output;
-  eval(source);
+  try {
+    eval(source);
+  } catch (e) {
+    throw new Error(`Syntax error: ${e.message}
+
+${source}`);
+  }
   return output;
 }
 
@@ -38,7 +43,7 @@ test('compiling a simple file', t => {
   let store = new Map();
   store.set('entry.js', 'output = 1');
   return compile('entry.js', store).then(mod => {
-    let source = codegen(mod).code;
+    let source = mod.codegen();
     t.is(evalit(source), 1);
   });
 });
@@ -46,12 +51,15 @@ test('compiling a simple file', t => {
 test('compiling a file with a macro', t => {
   let store = new Map();
   store.set('entry.js', `
+    function f() {
+      syntax n = ctx => #\`1\`;
+      return n;
+    }
     syntax m = ctx => #\`1\`;
     output = m;
   `);
   return compile('entry.js', store).then(mod => {
-    let source = codegen(mod).code;
-    console.log(source);
+    let source = mod.codegen();
     t.is(evalit(source), 1);
   });
 });

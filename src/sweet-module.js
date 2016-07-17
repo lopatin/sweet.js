@@ -1,6 +1,8 @@
 import * as _ from "ramda";
-import * as T from './terms';
+import Term, * as T from './terms';
 import ASTDispatcher from './ast-dispatcher';
+import codegen from '../src/codegen';
+import { List } from 'immutable';
 
 
 export default class SweetModule {
@@ -9,11 +11,11 @@ export default class SweetModule {
   }
 
   runtimeItems() {
-    return this.items.filter(_.complement(isCompiletimeItem));
+    return this.items.filter(_.complement(T.isCompiletimeStatement));
   }
 
   compiletimeItems() {
-    return this.items.filter(isCompiletimeItem);
+    return this.items.filter(T.isCompiletimeStatement);
   }
 
   importEntries() {
@@ -25,7 +27,9 @@ export default class SweetModule {
   }
 
   codegen() {
-    // must filter out all compiletime code
-    // new RuntimeReducer(this.items)
+    return codegen(new Term('Module', {
+      items: this.runtimeItems(),
+      directives: List()
+    })).code;
   }
 }
