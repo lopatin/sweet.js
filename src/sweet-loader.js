@@ -1,4 +1,3 @@
-import { Loader } from 'es6-module-loader';
 import { Modules } from './modules';
 import Reader from "./shift-reader";
 import { Scope, freshScope } from "./scope";
@@ -16,9 +15,8 @@ const phaseInModulePathRegexp = /(.*):(\d+)\s*$/;
 
 const isCompiletimeItem = _.either(T.isCompiletimeStatement, T.isExportSyntax);
 
-export class SweetLoader extends Loader {
+export class SweetLoader {
   constructor() {
-    super();
     this.sourceCache = new Map();
     this.compiledCache = new Map();
 
@@ -46,13 +44,14 @@ export class SweetLoader extends Loader {
     // takes `/abs/path/to/source.js:<phase>`
     // gives { path: '/abs/path/to/source.js', phase: <phase> }
     let match = name.match(phaseInModulePathRegexp);
+    // console.log(match);
     if (match && match.length >= 3) {
       return Promise.resolve({
         path: match[1],
         phase: parseInt(match[2], 10)
       });
     }
-    throw new Error(`Module ${name} is missing phase information`);
+    return Promise.reject(new Error(`Module ${name} is missing phase information`));
   }
 
   fetch({name, address, metadata}) {
@@ -78,36 +77,48 @@ export class SweetLoader extends Loader {
     if (this.compiledCache.has(address.path)) {
       return Promise.resolve(this.compiledCache.get(address.path));
     }
-    return this.compile(source).then(compiledModule => {
+    return this.compileSource(source).then(compiledModule => {
       self.compiledCache.set(address.path, compiledModule);
       return compiledModule;
     });
   }
 
   instantiate({name, address, source, metadata}) {
-    let self = this;
-    return {
-      deps: [], // dependencies at needed phases
-      execute() {
-        if (address.phase === 0) {
-          return self.newModule({});
-        }
-        return self.newModule({ a: 'a' });
-      }
-    };
+    throw new Error("Not implemented yet");
+  }
+
+  load(entryPath) {
+    return this.normalize(entryPath)
+        .then(name => {
+          return this.locate({name, metadata: {}})
+            .then(address => ({ name, address }));
+        })
+        .then(({name, address, metadata}) => {
+          return this.fetch({name, address, metadata})
+            .then(source => ({ name, address, metadata, source }));
+        })
+        .then(({name, address, source, metadata}) => {
+          return this.translate({ name, address, source, metadata })
+            .then(source => ({ name, address, metadata, source }));
+        }).then(({ name, address, source, metadata}) => {
+          return this.instantiate({ name, address, source, metadata });
+        });
   }
 
   // skip instantiate
-  getCompiled(entryPath) {
-    this.normalize(entryPath)
+  compile(entryPath) {
+    return this.normalize(entryPath)
         .then(name => {
-          return { name, addr: this.locate({ name, metadata: {} }) };
+          return this.locate({name, metadata: {}})
+            .then(address => ({ name, address }));
         })
-        .then(({name, addr, metadata}) => {
-          return { name, addr, metadata, source: this.fetch({ name, addr, metadata }) };
+        .then(({name, address, metadata}) => {
+          console.log(address);
+          return this.fetch({name, address, metadata})
+            .then(source => ({ name, address, metadata, source }));
         })
-        .then(({name, addr, source, metadata}) => {
-          return this.translate({ name, addr, source, metadata });
+        .then(({name, address, source, metadata}) => {
+          return this.translate({ name, address, source, metadata });
         });
   }
 
@@ -115,7 +126,7 @@ export class SweetLoader extends Loader {
     return new Reader(source).read();
   }
 
-  compile(source) {
+  compileSource(source) {
     let stxl = this.read(source);
     let outScope = freshScope('outsideEdge');
     let inScope = freshScope('insideEdge0');
@@ -146,16 +157,16 @@ function makeLoader(debugStore) {
       if (debugStore.has(address.path)) {
         return Promise.resolve(debugStore.get(address.path));
       }
-      throw new Error(`The module ${name} is not in the debug store`);
+      return Promise.reject(new Error(`The module ${name} is not in the debug store`));
     };
   }
   return l;
 }
 
 export function load(entryPath, debugStore) {
-  return makeLoader(debugStore).import(entryPath);
+  return makeLoader(debugStore).load(entryPath);
 }
 
 export default function compile(entryPath, debugStore) {
-  return makeLoader(debugStore).getCompiled(entryPath);
+  return makeLoader(debugStore).compile(entryPath);
 }
