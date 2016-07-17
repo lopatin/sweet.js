@@ -113,7 +113,6 @@ export class SweetLoader {
             .then(address => ({ name, address }));
         })
         .then(({name, address, metadata}) => {
-          console.log(address);
           return this.fetch({name, address, metadata})
             .then(source => ({ name, address, metadata, source }));
         })
