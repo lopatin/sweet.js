@@ -4,8 +4,8 @@ import { expr, stmt, testParse } from "./assertions";
 import test from 'ava';
 
 
-test("should handle a function declaration", function () {
-  testParse("function id(x) { }", stmt, {
+test("should handle a function declaration", t => {
+  return testParse("function id(x) { }", stmt, {
     "type": "FunctionDeclaration",
     "loc": null,
     "name": {
@@ -33,8 +33,8 @@ test("should handle a function declaration", function () {
   });
 });
 
-test("should handle a function declaration with rest parameters", function () {
-  testParse("function id(x, ...rest) { }", stmt, {
+test("should handle a function declaration with rest parameters", t => {
+  return testParse("function id(x, ...rest) { }", stmt, {
     "type": "FunctionDeclaration",
     "loc": null,
     "name": {
@@ -65,8 +65,8 @@ test("should handle a function declaration with rest parameters", function () {
   });
 });
 
-test("should handle a generator function declaration", function () {
-  testParse("function * id(x) {}", stmt, {
+test("should handle a generator function declaration", t => {
+  return testParse("function * id(x) {}", stmt, {
     "type": "FunctionDeclaration",
     "loc": null,
     "name": {
@@ -94,17 +94,17 @@ test("should handle a generator function declaration", function () {
   });
 });
 
-test("should throw an error for a bad return statement", function () {
+test("should throw an error for a bad return statement", t => {
   expect(() => parse("function foo() { return return }")).to.throwError();
 });
 
 
-test("should thrown an error for a bad var decl", function () {
+test("should thrown an error for a bad var decl", t => {
   expect(() => parse("var 42")).to.throwError();
 });
 
-test("should handle a var declaration", function () {
-  testParse("var x", stmt, {
+test("should handle a var declaration", t => {
+  return testParse("var x", stmt, {
     "type": "VariableDeclarationStatement",
     "declaration": {
       "type": "VariableDeclaration",
@@ -123,7 +123,7 @@ test("should handle a var declaration", function () {
     }
   });
 
-  testParse("var x = 42", stmt, {
+  return testParse("var x = 42", stmt, {
     "type": "VariableDeclarationStatement",
     "declaration": {
       "type": "VariableDeclaration",
@@ -146,7 +146,7 @@ test("should handle a var declaration", function () {
     }
   });
 
-  testParse("var x = 42, y = 42 + 24", stmt, {
+  return testParse("var x = 42, y = 42 + 24", stmt, {
     "type": "VariableDeclarationStatement",
     "declaration": {
       "type": "VariableDeclaration",
@@ -192,7 +192,7 @@ test("should handle a var declaration", function () {
     }
   });
 
-  testParse("let x = 42, y = 42 + 24", stmt, {
+  return testParse("let x = 42, y = 42 + 24", stmt, {
     "type": "VariableDeclarationStatement",
     "declaration": {
       "type": "VariableDeclaration",
@@ -238,7 +238,7 @@ test("should handle a var declaration", function () {
     }
   });
 
-  testParse("const x = 42, y = 42 + 24", stmt, {
+  return testParse("const x = 42, y = 42 + 24", stmt, {
     "type": "VariableDeclarationStatement",
     "declaration": {
       "type": "VariableDeclaration",
@@ -286,13 +286,13 @@ test("should handle a var declaration", function () {
 
 });
 
-test("should throw an error for a bad variable decl expression", function () {
+test("should throw an error for a bad variable decl expression", t => {
   expect(() => parse("var x = var")).to.throwError();
 });
 
 
 test("should parse an empty class", () => {
-  testParse("class F {}", stmt, {
+  return testParse("class F {}", stmt, {
     "type": "ClassDeclaration",
     "loc": null,
     "name": {
@@ -306,7 +306,7 @@ test("should parse an empty class", () => {
 });
 
 test('should parse a simple assignment', () => {
-  testParse("x = 42", stmt, {
+  return testParse("x = 42", stmt, {
     type: 'ExpressionStatement',
     loc: null,
     expression: {

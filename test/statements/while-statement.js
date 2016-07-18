@@ -20,24 +20,25 @@ import test from 'ava';
 
 test("while statement", function () {
 
-  testParse("while(1);", stmt,
+  return testParse("while(1);", stmt,
     { type: "WhileStatement",
       body: { type: "EmptyStatement" },
       test: { type: "LiteralNumericExpression", value: 1 } }
-  );
+  ).then(() => {
+    return testParse("while (true) doSomething()", stmt,
+      { type: "WhileStatement",
+        body:
+          { type: "ExpressionStatement",
+            expression:
+              { type: "CallExpression",
+                callee: { type: "IdentifierExpression", name: "doSomething" },
+                arguments: [] } },
+        test: { type: "LiteralBooleanExpression", value: true } }
+    );
+  });
 
-  testParse("while (true) doSomething()", stmt,
-    { type: "WhileStatement",
-      body:
-        { type: "ExpressionStatement",
-          expression:
-            { type: "CallExpression",
-              callee: { type: "IdentifierExpression", name: "doSomething" },
-              arguments: [] } },
-      test: { type: "LiteralBooleanExpression", value: true } }
-  );
 
-  // testParse("while (x < 10) { x++; y--; }", stmt,
+  // return testParse("while (x < 10) { x++; y--; }", stmt,
   //   { type: "WhileStatement",
   //     body:
   //       { type: "BlockStatement",

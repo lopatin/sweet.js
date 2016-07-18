@@ -1,5 +1,5 @@
 import { readAsTerms as read } from "../src/sweet";
-import { makeEnforester as mkEnf, expr, stmt, testParse } from "./assertions";
+import { makeEnforester as mkEnf, expr, stmt } from "./assertions";
 import expect from "expect.js";
 import test from 'ava';
 

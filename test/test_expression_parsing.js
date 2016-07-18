@@ -6,8 +6,8 @@ import test from 'ava';
 import reduce, { MonoidalReducer, CloneReducer } from "shift-reducer";
 
 
-test("should handle the `this` keyword", function () {
-  testParse("this;", stmt, {
+test("should handle the `this` keyword", t => {
+  return testParse("this;", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -17,8 +17,8 @@ test("should handle the `this` keyword", function () {
   });
 });
 
-test("should handle a single identifier", function () {
-  testParse("x", stmt, {
+test("should handle a single identifier", t => {
+  return testParse("x", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -29,8 +29,8 @@ test("should handle a single identifier", function () {
   });
 });
 
-test("should handle a literal", function () {
-  testParse("42;", stmt, {
+test("should handle a literal", t => {
+  return testParse("42;", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -39,7 +39,7 @@ test("should handle a literal", function () {
       "value": 42
     }
   });
-  testParse("false;", stmt, {
+  return testParse("false;", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -48,7 +48,7 @@ test("should handle a literal", function () {
       "value": false
     }
   });
-  testParse("null;", stmt, {
+  return testParse("null;", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -57,7 +57,7 @@ test("should handle a literal", function () {
     }
   });
 
-  testParse('`x`', stmt, {
+  return testParse('`x`', stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -74,7 +74,7 @@ test("should handle a literal", function () {
     }
   });
 
-  testParse('id`x`', stmt, {
+  return testParse('id`x`', stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -95,7 +95,7 @@ test("should handle a literal", function () {
     }
   });
 
-  testParse('`x${1 + 2}y`', stmt, {
+  return testParse('`x${1 + 2}y`', stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -132,7 +132,7 @@ test("should handle a literal", function () {
     }
   });
 
-  testParse("'foo';", stmt, {
+  return testParse("'foo';", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -141,7 +141,7 @@ test("should handle a literal", function () {
       "value": "foo"
     }
   });
-  // testParse("/foo/i;", stmt, {
+  // return testParse("/foo/i;", stmt, {
   //    "type": "ExpressionStatement",
   //    "loc": null,
   //    "expression": {
@@ -154,8 +154,8 @@ test("should handle a literal", function () {
 });
 
 // TODO: figure out how to test with hygiene
-test("should handle a function expression", function () {
-  testParse("(function(x) { });", stmt, {
+test("should handle a function expression", t => {
+  return testParse("(function(x) { });", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -183,8 +183,8 @@ test("should handle a function expression", function () {
   });
 });
 
-test("should handle a named function expression", function () {
-  testParse("(function x(x) { });", stmt, {
+test("should handle a named function expression", t => {
+  return testParse("(function x(x) { });", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -216,8 +216,8 @@ test("should handle a named function expression", function () {
   });
 });
 
-test("should handle a generator function", function () {
-  testParse("(function * id(x) {})", stmt, {
+test("should handle a generator function", t => {
+  return testParse("(function * id(x) {})", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -249,16 +249,16 @@ test("should handle a generator function", function () {
   });
 });
 
-test("should handle a empty object literal", function () {
-  testParse("({})", expr, {
+test("should handle a empty object literal", t => {
+  return testParse("({})", expr, {
     "type": "ObjectExpression",
     "loc": null,
     "properties": []
   });
 });
 
-test("should handle an object literal with a single property", function () {
-  testParse("({ foo: 42 })", expr, {
+test("should handle an object literal with a single property", t => {
+  return testParse("({ foo: 42 })", expr, {
     "loc": null,
     "type": "ObjectExpression",
     "properties": [
@@ -280,8 +280,8 @@ test("should handle an object literal with a single property", function () {
   });
 });
 
-test("should handle a object literal with multiple properties", function () {
-  testParse("({ foo: 42, bar: 24 })", expr, {
+test("should handle a object literal with multiple properties", t => {
+  return testParse("({ foo: 42, bar: 24 })", expr, {
     "loc": null,
     "type": "ObjectExpression",
     "properties": [
@@ -317,8 +317,8 @@ test("should handle a object literal with multiple properties", function () {
   });
 });
 
-test("should handle an empty array literal", function () {
-  testParse("[];", stmt, {
+test("should handle an empty array literal", t => {
+  return testParse("[];", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -329,8 +329,8 @@ test("should handle an empty array literal", function () {
   });
 });
 
-test("should handle an single null element array literal", function () {
-  testParse("[,];", stmt, {
+test("should handle an single null element array literal", t => {
+  return testParse("[,];", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -343,8 +343,8 @@ test("should handle an single null element array literal", function () {
   });
 });
 
-test("should handle an two element array literal", function () {
-  testParse("[42,24];", stmt, {
+test("should handle an two element array literal", t => {
+  return testParse("[42,24];", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -366,8 +366,8 @@ test("should handle an two element array literal", function () {
   });
 });
 
-test("should handle an single element array literal with a trailing comma", function () {
-  testParse("[42,];", stmt, {
+test("should handle an single element array literal with a trailing comma", t => {
+  return testParse("[42,];", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -384,8 +384,8 @@ test("should handle an single element array literal with a trailing comma", func
   });
 });
 
-test("should handle a call", function () {
-  testParse("x()", stmt, {
+test("should handle a call", t => {
+  return testParse("x()", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -401,8 +401,8 @@ test("should handle a call", function () {
   });
 });
 
-test("should handle a call with a single arg", function () {
-  testParse("x(42)", stmt, {
+test("should handle a call with a single arg", t => {
+  return testParse("x(42)", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -422,8 +422,8 @@ test("should handle a call with a single arg", function () {
   });
 });
 
-test("should handle a call with a multiple args", function () {
-  testParse("x(42, 24)", stmt, {
+test("should handle a call with a multiple args", t => {
+  return testParse("x(42, 24)", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -447,7 +447,7 @@ test("should handle a call with a multiple args", function () {
   });
 });
 
-test("should handle errors with calls", function () {
+test("should handle errors with calls", t => {
   expect(() => {
     parse("x(42 24)");
   }).to.throwError();
@@ -457,8 +457,8 @@ test("should handle errors with calls", function () {
   }).to.throwError();
 });
 
-test("should handle a static member access", function () {
-  testParse("foo.bar;", stmt, {
+test("should handle a static member access", t => {
+  return testParse("foo.bar;", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -474,13 +474,13 @@ test("should handle a static member access", function () {
   });
 });
 
-test("should throw an error for a bad static member access", function () {
+test("should throw an error for a bad static member access", t => {
   expect(() => parse("foo.+")).to.throwError();
 });
 
 
-test("should handle a binary expr", function () {
-  testParse("42 + 24", stmt, {
+test("should handle a binary expr", t => {
+  return testParse("42 + 24", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -500,7 +500,7 @@ test("should handle a binary expr", function () {
     }
   });
 
-  testParse("42 + 24 + 2", stmt, {
+  return testParse("42 + 24 + 2", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -530,7 +530,7 @@ test("should handle a binary expr", function () {
     }
   });
 
-  testParse("42 + 24 * 2", stmt, {
+  return testParse("42 + 24 * 2", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -560,7 +560,7 @@ test("should handle a binary expr", function () {
     }
   });
 
-  testParse("42 * 24 + 2", stmt, {
+  return testParse("42 * 24 + 2", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {
@@ -590,7 +590,7 @@ test("should handle a binary expr", function () {
     }
   });
 
-  testParse("42 * (24 + 2)", stmt, {
+  return testParse("42 * (24 + 2)", stmt, {
     "type": "ExpressionStatement",
     "loc": null,
     "expression": {

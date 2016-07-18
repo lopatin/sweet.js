@@ -5,6 +5,7 @@ import codegen from './codegen';
 import { List } from 'immutable';
 import reduce from './reduce';
 import RuntimeReducer from './runtime-reducer';
+import ParseReducer from './parse-reducer';
 
 
 export default class SweetModule {
@@ -28,10 +29,14 @@ export default class SweetModule {
     return this.items.filter(T.isExportDeclaration);
   }
 
-  codegen() {
-    let ast = reduce(new RuntimeReducer(), new Term('Module', {
+  parse() {
+    let runtimeTerms = reduce(new RuntimeReducer(), new Term('Module', {
       items: this.items, directives: List()
     }));
-    return codegen(ast).code;
+    return reduce(new ParseReducer({phase: 0}), runtimeTerms);
+  }
+
+  codegen() {
+    return codegen(this.parse()).code;
   }
 }

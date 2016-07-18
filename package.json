@@ -31,7 +31,7 @@
     "build:browser": "webpack build/src/sweet.js --output-library-target amd --output-library sweet",
     "build": "npm run build:sweet && npm run build:src && npm run build:test",
     "pretest": "npm run build && npm run lint",
-    "test:curr": "ava build/test/test-sweet-loader.js",
+    "test:curr": "ava build/test/statements/while-statement.js",
     "test:smoke": "ava build/test/*.js !build/test/assertions.js",
     "test": "ava",
     "report": "nyc ava && nyc report --reporter=html",

@@ -1,6 +1,7 @@
 import test from 'ava';
 
 import compile, { load, SweetLoader } from '../src/sweet-loader';
+import testEval from './assertions';
 
 // SweetLoader unit tests
 
@@ -40,17 +41,11 @@ ${source}`);
 }
 
 test('compiling a simple file', t => {
-  let store = new Map();
-  store.set('entry.js', 'output = 1');
-  return compile('entry.js', store).then(mod => {
-    let source = mod.codegen();
-    t.is(evalit(source), 1);
-  });
+  return testEval(`output = 1`, output => t.is(output, 1));
 });
 
-test('compiling a file with a macro', t => {
-  let store = new Map();
-  store.set('entry.js', `
+test('compiling a file with some macro definitions', t => {
+  testEval(`
     function f() {
       syntax n = ctx => #\`1\`;
       return n;
@@ -61,11 +56,7 @@ test('compiling a file with a macro', t => {
     }
     syntax m = ctx => #\`1\`;
     output = m;
-  `);
-  return compile('entry.js', store).then(mod => {
-    let source = mod.codegen();
-    t.is(evalit(source), 1);
-  });
+  `, output => t.is(output, 1));
 });
 
 // test('loading a no-dep single var export module', t => {

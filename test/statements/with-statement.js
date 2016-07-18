@@ -20,38 +20,37 @@ import test from 'ava';
 
 test("with statement", function () {
 
-  testParse("with(1);", stmt,
+  return testParse("with(1);", stmt,
     { type: "WithStatement",
       object: { type: "LiteralNumericExpression", value: 1 },
       body: { type: "EmptyStatement" } }
-  );
-
-  testParse("with (x) foo", stmt,
-    { type: "WithStatement",
-      object: { type: "IdentifierExpression", name: "x" },
-      body:
-        { type: "ExpressionStatement",
-          expression: { type: "IdentifierExpression", name: "foo" } } }
-  );
-
-  testParse("with (x) foo;", stmt,
-    { type: "WithStatement",
-      object: { type: "IdentifierExpression", name: "x" },
-      body:
-        { type: "ExpressionStatement",
-          expression: { type: "IdentifierExpression", name: "foo" } } }
-  );
-
-  testParse("with (x) { foo }", stmt,
-    { type: "WithStatement",
-      object: { type: "IdentifierExpression", name: "x" },
-      body:
-        { type: "BlockStatement",
-          block:
-            { type: "Block",
-              statements:
-                [ { type: "ExpressionStatement",
-                    expression: { type: "IdentifierExpression", name: "foo" } } ] } } }
-  );
-
+  ).then(() => {
+    return testParse("with (x) foo", stmt,
+      { type: "WithStatement",
+        object: { type: "IdentifierExpression", name: "x" },
+        body:
+          { type: "ExpressionStatement",
+            expression: { type: "IdentifierExpression", name: "foo" } } }
+    );
+  }).then(() => {
+    return testParse("with (x) foo;", stmt,
+      { type: "WithStatement",
+        object: { type: "IdentifierExpression", name: "x" },
+        body:
+          { type: "ExpressionStatement",
+            expression: { type: "IdentifierExpression", name: "foo" } } }
+    );
+  }).then(() => {
+    return testParse("with (x) { foo }", stmt,
+      { type: "WithStatement",
+        object: { type: "IdentifierExpression", name: "x" },
+        body:
+          { type: "BlockStatement",
+            block:
+              { type: "Block",
+                statements:
+                  [ { type: "ExpressionStatement",
+                      expression: { type: "IdentifierExpression", name: "foo" } } ] } } }
+    );
+  });
 });
