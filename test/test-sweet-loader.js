@@ -54,6 +54,10 @@ test('compiling a file with a macro', t => {
     function f() {
       syntax n = ctx => #\`1\`;
       return n;
+      if (true) {
+        syntax o = ctx => #\`1\`;
+        return o;
+      }
     }
     syntax m = ctx => #\`1\`;
     output = m;

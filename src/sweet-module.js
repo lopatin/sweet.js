@@ -1,8 +1,10 @@
 import * as _ from "ramda";
 import Term, * as T from './terms';
 import ASTDispatcher from './ast-dispatcher';
-import codegen from '../src/codegen';
+import codegen from './codegen';
 import { List } from 'immutable';
+import reduce from './reduce';
+import RuntimeReducer from './runtime-reducer';
 
 
 export default class SweetModule {
@@ -27,9 +29,9 @@ export default class SweetModule {
   }
 
   codegen() {
-    return codegen(new Term('Module', {
-      items: this.runtimeItems(),
-      directives: List()
-    })).code;
+    let ast = reduce(new RuntimeReducer(), new Term('Module', {
+      items: this.items, directives: List()
+    }));
+    return codegen(ast).code;
   }
 }

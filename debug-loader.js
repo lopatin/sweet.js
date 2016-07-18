@@ -12,8 +12,8 @@ var compile = require("./build/src/sweet-loader.js").default;
 
 debugger;
 
-compile('./test.js').then(result => {
-  console.log(result);
+compile('./test.js').then(mod => {
+  console.log(mod.codegen());
 }).catch(err => {
   console.log('errored: ' + err);
 });
