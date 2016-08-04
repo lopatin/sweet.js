@@ -185,7 +185,6 @@ export default class Tokenizer {
     this.lastLine = 0;
     this.lastLineStart = 0;
     this.hasLineTerminatorBeforeNext = false;
-    this.tokenIndex = 0;
   }
 
   saveLexerState() {
@@ -202,7 +201,6 @@ export default class Tokenizer {
       lastLineStart: this.lastLineStart,
       lookahead: this.lookahead,
       hasLineTerminatorBeforeNext: this.hasLineTerminatorBeforeNext,
-      tokenIndex: this.tokenIndex,
     };
   }
 
@@ -219,7 +217,6 @@ export default class Tokenizer {
     this.lastLineStart = state.lastLineStart;
     this.lookahead = state.lookahead;
     this.hasLineTerminatorBeforeNext = state.hasLineTerminatorBeforeNext;
-    this.tokenIndex = state.tokenIndex;
   }
 
   createILLEGAL() {
@@ -1444,7 +1441,6 @@ export default class Tokenizer {
   lex() {
     let prevToken = this.lookahead;
     this.lookahead = this.advance();
-    this.tokenIndex++;
     return prevToken;
   }
 }
