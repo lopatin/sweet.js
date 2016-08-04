@@ -28,24 +28,12 @@ test('locate throws an error if phase is missing', t => {
 
 // High-level API
 
-function evalit(source) {
-  var output;
-  try {
-    eval(source);
-  } catch (e) {
-    throw new Error(`Syntax error: ${e.message}
-
-${source}`);
-  }
-  return output;
-}
-
 test('compiling a simple file', t => {
   return testEval(`output = 1`, output => t.is(output, 1));
 });
 
 test('compiling a file with some macro definitions', t => {
-  testEval(`
+  return testEval(`
     function f() {
       syntax n = ctx => #\`1\`;
       return n;
