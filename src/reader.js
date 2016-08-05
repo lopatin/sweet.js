@@ -11,9 +11,11 @@ export default class Reader {
   read() {
     let result = [];
     this.lexer.lex();
+
     while (!this.lexer.eof()) {
       result.push(new Syntax(this.lexer.lex()));
     }
+
     return List(result);
   }
 }
