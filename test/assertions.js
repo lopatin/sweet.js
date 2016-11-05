@@ -1,7 +1,7 @@
 import { parse, compile } from "../src/sweet";
 import expect from "expect.js";
 import { zip, curry, equals, cond, identity, T, and, compose, type, mapObjIndexed, map, keys, has } from 'ramda';
-import { transform } from 'babel-core';
+import { transform } from 'babel-standalone';
 import Reader from "../src/shift-reader";
 import { Enforester } from "../src/enforester";
 import { List } from "immutable";

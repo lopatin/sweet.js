@@ -8,7 +8,7 @@ process:
 */
 
 var compile = require("./build/src/sweet").compile;
-var transform = require('babel-core').transform;
+var transform = require('babel-standalone').transform;
 var moduleResolver = require('./build/src/node-module-resolver').default;
 var moduleLoader = require('./build/src/node-module-loader').default;
 

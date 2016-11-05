@@ -11,7 +11,7 @@ import { Modules } from './modules';
 
 // not available in browser
 
-import { transform as babelTransform } from "babel-core";
+import { transform as babelTransform } from "babel-standalone";
 import nodeResolver from "./node-module-resolver";
 import nodeLoader from "./node-module-loader";
 
